@@ -1,0 +1,350 @@
+"""
+engine/backtester.py — Walk-forward backtest with Supertrend trailing SL.
+
+Entry filters (ALL must be true simultaneously):
+  1. Supertrend GREEN/RED
+  2. Price > EMA21  (price on correct side of trend)
+  3. RSI in [45,80] BUY / [25,55] SELL
+  4. Price > VWAP
+  5. ADX in [20,60]
+  Entry window: 09:40 – 13:30 IST
+
+Exit logic (in priority order):
+  1. SUPERTREND TRAIL SL — BUY: SL = st_value (trails up); SELL: SL = st_value (trails down)
+  2. HARD SL CAP         — NIFTY: fixed 55pts | BANKNIFTY: dynamic 2×ATR(14) from entry
+  3. SL HIT              — candle low/high crosses the active SL
+  4. RSI MOMENTUM EXIT   — BUY RSI<40; SELL RSI>60 (wide band, avoids noise)
+  5. EOD EXIT            — force close 15:15 IST
+  6. REVERSE SIGNAL      — 2 consecutive opposite-direction candles (Option B)
+"""
+
+from __future__ import annotations
+import datetime
+import pandas as pd
+import numpy as np
+
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+import config
+from engine.indicators import add_indicators
+from engine.signal_engine import SIGNAL_BUY, SIGNAL_SELL, SIGNAL_NONE
+
+
+# ─── helpers ─────────────────────────────────────────────────────────────────
+
+def _strip_tz(dt) -> datetime.datetime:
+    dt = pd.Timestamp(dt)
+    if dt.tzinfo is not None:
+        dt = dt.tz_convert("Asia/Kolkata").tz_localize(None)
+    return dt.to_pydatetime()
+
+def _in_session(dt) -> bool:
+    t = _strip_tz(dt).time()
+    return datetime.time(9, 30) <= t <= datetime.time(14, 30)
+
+def _force_exit_dt(date: datetime.date) -> datetime.datetime:
+    return datetime.datetime.combine(date, datetime.time(15, 15))
+
+
+# ─── signal evaluation ───────────────────────────────────────────────────────
+
+def _eval_signal(row, close: float) -> str:
+    adx_val  = float(row.get("adx")   or 0)
+    rsi_val  = float(row.get("rsi")   or 0)
+    vwap_val = float(row.get("vwap")  or 0)
+    st_sig   = int(row.get("st_signal") or 0)
+    ema_s    = float(row.get("ema_slow") or 0)
+
+    adx_max = config.ADX_MAX if isinstance(config.ADX_MAX, (int, float)) else 60
+    adx_ok  = (not np.isnan(adx_val)) and config.ADX_THRESHOLD <= adx_val <= adx_max
+
+    buy_all = (adx_ok and st_sig == 1
+               and close > ema_s
+               and config.RSI_BUY_LOW  <= rsi_val <= config.RSI_BUY_HIGH
+               and close > vwap_val)
+
+    sell_all = (adx_ok and st_sig == -1
+                and close < ema_s
+                and config.RSI_SELL_LOW <= rsi_val <= config.RSI_SELL_HIGH
+                and close < vwap_val)
+
+    if buy_all:  return SIGNAL_BUY
+    if sell_all: return SIGNAL_SELL
+    return SIGNAL_NONE
+
+
+# ─── Supertrend trailing SL ───────────────────────────────────────────────────
+
+def _supertrend_sl(row) -> float:
+    """Return the current Supertrend line value as the trailing SL."""
+    return float(row.get("st_value") or 0)
+
+
+# ─── core ────────────────────────────────────────────────────────────────────
+
+def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+    df_full = df_full.copy()
+    df_full["datetime"] = pd.to_datetime(df_full["datetime"])
+    df_full = df_full.sort_values("datetime").reset_index(drop=True)
+    df_ind  = add_indicators(df_full.copy())
+
+    trades      = []
+    diag_rows   = []
+    open_trade  = None
+    pending_rev = None
+    prev_date   = None
+    # Nifty: fixed-point cap; BankNifty: dynamic per-candle 2×ATR (set in _open / trailing)
+    fixed_cap   = config.SL_CAP_PTS.get(symbol)          # None for BankNifty
+    atr_cap_mult = getattr(config, "ATR_SL_MULT_BANKNIFTY", 2.0) if symbol == "BANKNIFTY" else None
+
+    warmup = max(config.EMA_SLOW, config.RSI_PERIOD, config.ST_PERIOD) + 10
+
+    for i in range(warmup, len(df_ind)):
+        row   = df_ind.iloc[i]
+        cdt   = pd.to_datetime(row["datetime"])
+        cdt_n = _strip_tz(cdt)
+        cdate = cdt_n.date()
+        close = float(row["close"])
+        high  = float(row["high"])
+        low   = float(row["low"])
+        rsi_now  = float(row.get("rsi")      or 0)
+        atr_val  = float(row.get("atr")      or 0)
+        st_val   = float(row.get("st_value") or 0)
+        st_sig   = int(row.get("st_signal")  or 0)
+
+        # ── new day: close any carried-over trade at open ─────────────────────
+        if cdate != prev_date:
+            if open_trade is not None:
+                _close(trades, open_trade, cdt, close, "Day Change")
+                open_trade = None
+            pending_rev = None
+            prev_date   = cdate
+
+        sig_label = _eval_signal(row, close)
+
+        # ── diagnostics ───────────────────────────────────────────────────────
+        adx_val  = float(row.get("adx")      or 0)
+        vwap_val = float(row.get("vwap")     or 0)
+        ema_s    = float(row.get("ema_slow") or 0)
+        adx_max  = config.ADX_MAX if isinstance(config.ADX_MAX, (int, float)) else 60
+        diag_rows.append({
+            "datetime"  : cdt,
+            "close"     : round(close, 2),
+            "adx"       : round(adx_val, 2),
+            "rsi"       : round(rsi_now, 2),
+            "vwap"      : round(vwap_val, 2),
+            "ema21"     : round(ema_s, 2),
+            "st_signal" : "GRN" if st_sig == 1 else ("RED" if st_sig == -1 else "-"),
+            "adx_ok"    : "Y" if config.ADX_THRESHOLD <= adx_val <= adx_max else "N",
+            "price>ema" : "Y" if close > ema_s  else "N",
+            "price>vwap": "Y" if close > vwap_val else "N",
+            "signal"    : sig_label,
+            "in_trade"  : open_trade["direction"] if open_trade else "-",
+        })
+
+        # ── outside session ───────────────────────────────────────────────────
+        if not _in_session(cdt_n):
+            if open_trade is not None and cdt_n >= _force_exit_dt(cdate):
+                _close(trades, open_trade, cdt, close, "EOD Exit")
+                open_trade = None; pending_rev = None
+            continue
+
+        # ══════════════════════════════════════════════════════════════════════
+        # OPEN TRADE MANAGEMENT
+        # ══════════════════════════════════════════════════════════════════════
+        if open_trade is not None:
+            direction = open_trade["direction"]
+
+            # ── 1. Supertrend trailing SL (primary) ───────────────────────────
+            st_trail = _supertrend_sl(row)
+            if st_trail and not np.isnan(st_trail):
+                if direction == SIGNAL_BUY:
+                    open_trade["sl"] = max(open_trade["sl"], st_trail)
+                else:
+                    open_trade["sl"] = min(open_trade["sl"], st_trail)
+
+            # ── 2. Hard SL cap backstop ───────────────────────────────────────
+            # Nifty: fixed pts cap.  BankNifty: recalculate 2×ATR each candle
+            # (ATR updates as volatility changes — cap tightens/widens accordingly)
+            entry = open_trade["entry_price"]
+            if atr_cap_mult is not None:
+                # BankNifty dynamic cap — use current candle ATR, not entry ATR
+                live_cap = round(atr_val * atr_cap_mult, 2) if atr_val else open_trade["entry_atr"] * atr_cap_mult
+            else:
+                live_cap = fixed_cap
+            if direction == SIGNAL_BUY:
+                hard_sl = round(entry - live_cap, 2)
+                open_trade["sl"] = max(open_trade["sl"], hard_sl)
+            else:
+                hard_sl = round(entry + live_cap, 2)
+                open_trade["sl"] = min(open_trade["sl"], hard_sl)
+
+            sl = open_trade["sl"]
+
+            # ── 3. SL Hit ─────────────────────────────────────────────────────
+            sl_hit = ((direction == SIGNAL_BUY  and low  <= sl) or
+                      (direction == SIGNAL_SELL and high >= sl))
+            if sl_hit:
+                _close(trades, open_trade, cdt, sl, "SL Hit")
+                open_trade = None; pending_rev = None
+                continue
+
+            # ── 4. RSI momentum exit (wide band) ─────────────────────────────
+            rsi_exit = ((direction == SIGNAL_BUY  and rsi_now < config.RSI_EXIT_BUY) or
+                        (direction == SIGNAL_SELL and rsi_now > config.RSI_EXIT_SELL))
+            if rsi_exit:
+                label = (f"RSI Exit (BUY RSI<{config.RSI_EXIT_BUY})"
+                         if direction == SIGNAL_BUY
+                         else f"RSI Exit (SELL RSI>{config.RSI_EXIT_SELL})")
+                _close(trades, open_trade, cdt, close, label)
+                open_trade = None; pending_rev = None
+                continue
+
+            # ── 5. EOD force exit ─────────────────────────────────────────────
+            if cdt_n >= _force_exit_dt(cdate):
+                _close(trades, open_trade, cdt, close, "EOD Exit")
+                open_trade = None; pending_rev = None
+                continue
+
+            # ── 6. Reverse signal — 2-candle confirmation (Option B) ──────────
+            reverse = SIGNAL_SELL if direction == SIGNAL_BUY else SIGNAL_BUY
+            if pending_rev == reverse and sig_label == reverse:
+                _close(trades, open_trade, cdt, close, "Reverse Signal")
+                open_trade = None; pending_rev = None
+                if cdt_n.time() <= datetime.time(13, 30):
+                    open_trade = _open(symbol, cdate, cdt, close, sig_label,
+                                       st_val, atr_val, rsi_now, adx_val, vwap_val,
+                                       fixed_cap, atr_cap_mult)
+                continue
+
+            pending_rev = sig_label if sig_label == reverse else None
+
+        # ══════════════════════════════════════════════════════════════════════
+        # NO OPEN TRADE — look for entry
+        # ══════════════════════════════════════════════════════════════════════
+        else:
+            if cdt_n >= _force_exit_dt(cdate):             continue
+            if cdt_n.time() > datetime.time(13, 30):       continue
+            if cdt_n.time() < datetime.time(9, 40):        continue
+
+            if sig_label != SIGNAL_NONE:
+                open_trade  = _open(symbol, cdate, cdt, close, sig_label,
+                                    st_val, atr_val, rsi_now, adx_val, vwap_val,
+                                    fixed_cap, atr_cap_mult)
+                pending_rev = None
+
+    # close anything still open
+    if open_trade is not None:
+        last = df_ind.iloc[-1]
+        _close(trades, open_trade,
+               pd.to_datetime(last["datetime"]), float(last["close"]), "Data End")
+
+    trade_cols = ["symbol","date","direction","entry_time","entry_price","sl","target",
+                  "exit_time","exit_price","exit_reason","points","result","rsi","adx","vwap"]
+    return (pd.DataFrame(trades, columns=trade_cols) if trades else pd.DataFrame(),
+            pd.DataFrame(diag_rows) if diag_rows else pd.DataFrame())
+
+
+# ─── trade helpers ────────────────────────────────────────────────────────────
+
+def _open(symbol, cdate, cdt, close, direction, st_val, atr_val,
+          rsi_val, adx_val, vwap_val, fixed_cap, atr_cap_mult) -> dict:
+    """
+    Open a new trade.
+    Initial SL = tighter of (Supertrend SL, hard cap).
+    Nifty   : hard cap = fixed_cap pts.
+    BankNifty: hard cap = atr_val × atr_cap_mult (2×ATR at entry).
+    """
+    cap = (round(atr_val * atr_cap_mult, 2) if atr_cap_mult is not None and atr_val
+           else (fixed_cap or 9999))
+    if direction == SIGNAL_BUY:
+        sl_st  = round(st_val, 2) if st_val else round(close - cap, 2)
+        sl_cap = round(close - cap, 2)
+        sl     = max(sl_st, sl_cap)
+    else:
+        sl_st  = round(st_val, 2) if st_val else round(close + cap, 2)
+        sl_cap = round(close + cap, 2)
+        sl     = min(sl_st, sl_cap)
+
+    target = (round(close + atr_val * config.ATR_MULTIPLIER, 2)
+              if direction == SIGNAL_BUY
+              else round(close - atr_val * config.ATR_MULTIPLIER, 2))
+
+    return {
+        "symbol"      : symbol,
+        "date"        : cdate,
+        "direction"   : direction,
+        "entry_time"  : cdt,
+        "entry_price" : round(close, 2),
+        "sl"          : round(sl, 2),
+        "target"      : target,
+        "entry_atr"   : round(atr_val, 2),  # stored for dynamic cap fallback
+        "rsi"         : round(rsi_val, 2),
+        "adx"         : round(adx_val, 2),
+        "vwap"        : round(vwap_val, 2),
+    }
+
+
+def _close(trades: list, trade: dict, cdt, exit_px: float, reason: str):
+    direction = trade["direction"]
+    exit_px   = round(exit_px, 2)
+    pts       = round((exit_px - trade["entry_price"]) if direction == SIGNAL_BUY
+                      else (trade["entry_price"] - exit_px), 2)
+    result    = "WIN" if pts > 0 else ("LOSS" if pts < 0 else "BE")
+    trades.append({
+        "symbol"     : trade["symbol"],
+        "date"       : trade["date"],
+        "direction"  : direction,
+        "entry_time" : trade["entry_time"],
+        "entry_price": trade["entry_price"],
+        "sl"         : trade["sl"],
+        "target"     : trade["target"],
+        "exit_time"  : cdt,
+        "exit_price" : exit_px,
+        "exit_reason": reason,
+        "points"     : pts,
+        "result"     : result,
+        "rsi"        : trade.get("rsi", 0),
+        "adx"        : trade.get("adx", 0),
+        "vwap"       : trade.get("vwap", 0),
+    })
+
+
+# ─── summary stats ────────────────────────────────────────────────────────────
+
+def summary_stats(trades: pd.DataFrame) -> dict:
+    if trades.empty:
+        return {}
+    total     = len(trades)
+    wins      = (trades["result"] == "WIN").sum()
+    losses    = (trades["result"] == "LOSS").sum()
+    be        = (trades["result"] == "BE").sum()
+    win_rate  = round(wins / total * 100, 1) if total else 0
+    total_pts = round(trades["points"].sum(), 2)
+    avg_win   = round(trades.loc[trades["result"] == "WIN",  "points"].mean() or 0, 2)
+    avg_loss  = round(trades.loc[trades["result"] == "LOSS", "points"].mean() or 0, 2)
+    rr        = round(abs(avg_win / avg_loss), 2) if avg_loss != 0 else float("inf")
+    streak = max_loss = 0
+    for r in trades["result"]:
+        streak   = streak + 1 if r == "LOSS" else 0
+        max_loss = max(max_loss, streak)
+
+    # Max drawdown — largest peak-to-trough drop in cumulative equity
+    cum   = trades["points"].cumsum()
+    peak  = cum.cummax()
+    dd    = cum - peak
+    max_dd = round(dd.min(), 2)   # negative number (e.g. -245.0)
+
+    return {
+        "total_trades"   : total,
+        "wins"           : int(wins),
+        "losses"         : int(losses),
+        "breakeven"      : int(be),
+        "win_rate_pct"   : win_rate,
+        "total_points"   : total_pts,
+        "avg_win_pts"    : avg_win,
+        "avg_loss_pts"   : avg_loss,
+        "risk_reward"    : rr,
+        "max_consec_loss": max_loss,
+        "max_drawdown"   : max_dd,
+    }

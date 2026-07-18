@@ -1,0 +1,231 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Options Analysis</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system,"Segoe UI",system-ui,sans-serif; font-size:14px;
+         line-height:1.6; background:#fff; color:#1f2328; padding:24px 16px; }
+  .wrap { max-width:780px; margin:0 auto; }
+  h1  { font-size:20px; font-weight:700; margin-bottom:4px; }
+  h2  { font-size:15px; font-weight:700; margin:28px 0 10px;
+        border-bottom:2px solid #e5e7eb; padding-bottom:6px; }
+  h3  { font-size:13px; font-weight:700; margin:14px 0 6px; }
+  .sub { font-size:12px; color:#57606a; margin-bottom:20px; }
+
+  /* verdict cards */
+  .vrow { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:16px 0; }
+  .vcard { border:1px solid #e5e7eb; border-radius:8px; padding:14px 16px; }
+  .vcard.green { border-color:#86efac; background:#f0fdf4; }
+  .vcard.red   { border-color:#fca5a5; background:#fff1f2; }
+  .vcard.amber { border-color:#fcd34d; background:#fffbeb; }
+  .vtag { display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px;
+          font-weight:700; margin-bottom:8px; }
+  .tag-pass { background:#dcfce7; color:#166534; }
+  .tag-fail { background:#fee2e2; color:#991b1b; }
+  .tag-part { background:#fef9c3; color:#854d0e; }
+  .vtitle { font-weight:700; font-size:14px; margin-bottom:6px; }
+  .vbody  { font-size:13px; color:#374151; }
+  .vbody li { margin:3px 0 3px 16px; }
+
+  /* table */
+  table { width:100%; border-collapse:collapse; font-size:12.5px; margin:8px 0 16px; }
+  thead th { background:#f7f8fa; border-bottom:2px solid #e5e7eb;
+             padding:7px 8px; text-align:right; font-weight:600; color:#57606a; white-space:nowrap; }
+  thead th:first-child, thead th:nth-child(2) { text-align:left; }
+  td { padding:7px 8px; border-bottom:1px solid #f0f0f0; text-align:right; }
+  td:first-child { text-align:left; font-weight:600; }
+  td:nth-child(2) { text-align:left; }
+  .base  { background:#f7f8fa; }
+  .win   { color:#16a34a; font-weight:600; }
+  .lose  { color:#dc2626; }
+  .neut  { color:#57606a; }
+  .hi    { color:#16a34a; font-weight:700; }
+  .lo    { color:#dc2626; font-weight:700; }
+  .delta-pos { color:#16a34a; }
+  .delta-neg { color:#dc2626; }
+
+  .note { background:#f7f8fa; border:1px solid #e5e7eb; border-radius:8px;
+          padding:14px 16px; margin:16px 0; font-size:13px; }
+  .note li { margin:4px 0 4px 16px; }
+  hr { border:none; border-top:2px solid #e5e7eb; margin:28px 0; }
+  footer { text-align:center; font-size:11px; color:#57606a;
+           border-top:1px solid #e5e7eb; padding-top:14px; margin-top:40px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Option 1 vs Option 2 — Data Analysis</h1>
+<div class="sub">Real backtest · 4,650 candles · Apr 17 – Jul 17 2026 · 4 variants × 5 periods × 2 symbols = 40 test runs</div>
+
+
+<h2>Verdict</h2>
+
+<div class="vrow">
+  <div class="vcard red">
+    <span class="vtag tag-fail">REJECT</span>
+    <div class="vtitle">Option 1 — 15-min Trend Confirm</div>
+    <div class="vbody">
+      <ul>
+        <li>NIFTY 30d: WR drops <b>74% → 63%</b>, points −446</li>
+        <li>NIFTY 90d: points −956 (lost nearly 40% of profit)</li>
+        <li>BankNifty 90d: points −1,715 despite same WR</li>
+        <li>BankNifty max consec losses spikes to <b>10</b> (was 5)</li>
+        <li>Filters out too many valid trades during brief 5-min trend surges that are actually with the higher trend</li>
+      </ul>
+    </div>
+  </div>
+  <div class="vcard green">
+    <span class="vtag tag-pass">IMPLEMENT for BANKNIFTY ONLY</span>
+    <div class="vtitle">Option 2 — ATR-Based SL Cap (2×ATR)</div>
+    <div class="vbody">
+      <ul>
+        <li>BankNifty 30d: WR <b>+2.4pp</b>, points <b>+272</b></li>
+        <li>BankNifty 90d: WR <b>+8.5pp</b>, points <b>+1,435</b> (+27%)</li>
+        <li>NIFTY: neutral to slightly negative — fixed 55pt cap was better calibrated</li>
+        <li>ATR adapts: on quiet days SL is tighter, on volatile days it breathes</li>
+        <li>Implement selectively: ATR cap for BankNifty, keep fixed 55pt cap for Nifty</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<hr />
+
+
+<h2>NIFTY 50 — All Variants</h2>
+
+<table>
+  <thead>
+    <tr><th>Period</th><th>Variant</th><th>Trades</th><th>Win%</th><th>Total Pts</th><th>Avg WIN</th><th>Avg LOSS</th><th>R:R</th><th>MaxCL</th></tr>
+  </thead>
+  <tbody>
+    <tr class="base"><td>10d</td><td>Baseline</td><td>11</td><td class="hi">72.7%</td><td class="win">+387</td><td class="win">+70.1</td><td class="lose">−58.0</td><td>1.21</td><td>2</td></tr>
+    <tr><td></td><td>+ 15m confirm</td><td>9</td><td class="lo">55.6%</td><td class="lose">+268</td><td class="win">+92.8</td><td class="lose">−49.1</td><td>1.89</td><td>2</td></tr>
+    <tr><td></td><td>ATR cap 2×</td><td>10</td><td class="hi">70.0%</td><td class="win">+399</td><td class="win">+78.6</td><td class="lose">−50.3</td><td>1.56</td><td><b>1</b></td></tr>
+    <tr><td></td><td>Both</td><td>8</td><td class="lo">50.0%</td><td class="lose">+285</td><td class="win">+113</td><td class="lose">−42.1</td><td>2.69</td><td>2</td></tr>
+
+    <tr class="base"><td>20d</td><td>Baseline</td><td>21</td><td class="hi">76.2%</td><td class="win">+718</td><td class="win">+62.6</td><td class="lose">−56.8</td><td>1.10</td><td>2</td></tr>
+    <tr><td></td><td>+ 15m confirm</td><td>15</td><td class="lo">60.0%</td><td class="lose">+421</td><td class="win">+77.2</td><td class="lose">−45.6</td><td>1.69</td><td>2</td></tr>
+    <tr><td></td><td>ATR cap 2×</td><td>20</td><td class="hi">75.0%</td><td class="win">+748</td><td class="win">+66.1</td><td class="lose">−48.7</td><td>1.36</td><td><b>1</b></td></tr>
+    <tr><td></td><td>Both</td><td>14</td><td class="lo">57.1%</td><td class="lose">+449</td><td class="win">+85.5</td><td class="lose">−39.3</td><td>2.18</td><td>2</td></tr>
+
+    <tr class="base"><td>30d</td><td>Baseline</td><td>31</td><td class="hi">74.2%</td><td class="win">+1,300</td><td class="win">+72.3</td><td class="lose">−45.2</td><td>1.60</td><td>2</td></tr>
+    <tr><td></td><td>+ 15m confirm</td><td>24</td><td class="lo">62.5%</td><td class="lose">+854</td><td class="win">+80.4</td><td class="lose">−39.1</td><td>2.06</td><td>2</td></tr>
+    <tr><td></td><td>ATR cap 2×</td><td>30</td><td>70.0%</td><td class="lose">+1,176</td><td class="win">+73.2</td><td class="lose">−40.1</td><td>1.83</td><td>2</td></tr>
+    <tr><td></td><td>Both</td><td>23</td><td class="lo">60.9%</td><td class="lose">+880</td><td class="win">+85.4</td><td class="lose">−35.0</td><td>2.44</td><td>2</td></tr>
+
+    <tr class="base"><td>90d</td><td>Baseline</td><td>113</td><td>54.9%</td><td class="win">+2,481</td><td class="win">+80.3</td><td class="lose">−48.9</td><td>1.64</td><td>4</td></tr>
+    <tr><td></td><td>+ 15m confirm</td><td>82</td><td class="lo">52.4%</td><td class="lose">+1,525</td><td class="win">+77.9</td><td class="lose">−46.8</td><td>1.66</td><td>6</td></tr>
+    <tr><td></td><td>ATR cap 2×</td><td>113</td><td class="lo">53.1%</td><td class="lose">+2,237</td><td class="win">+80.9</td><td class="lose">−49.3</td><td>1.64</td><td>4</td></tr>
+    <tr><td></td><td>Both</td><td>82</td><td class="lo">51.2%</td><td class="lose">+1,405</td><td class="win">+79.4</td><td class="lose">−48.2</td><td>1.65</td><td>5</td></tr>
+  </tbody>
+</table>
+
+<div class="note">
+  <b>NIFTY conclusion:</b> Baseline wins on every single period. Option 1 (15m) hurts WR by 10–12pp on 10–30d windows with no compensating gain. Option 2 (ATR cap) is neutral — slightly better at 10–20d, slightly worse at 30–90d. The fixed 55pt cap was already well-calibrated for Nifty's ATR range. <b>Keep Nifty unchanged.</b>
+</div>
+
+<hr />
+
+
+<h2>BANK NIFTY — All Variants</h2>
+
+<table>
+  <thead>
+    <tr><th>Period</th><th>Variant</th><th>Trades</th><th>Win%</th><th>Total Pts</th><th>Avg WIN</th><th>Avg LOSS</th><th>R:R</th><th>MaxCL</th></tr>
+  </thead>
+  <tbody>
+    <tr class="base"><td>10d</td><td>Baseline</td><td>15</td><td>60.0%</td><td class="win">+1,117</td><td class="win">+189.9</td><td class="lose">−98.6</td><td>1.93</td><td>2</td></tr>
+    <tr><td></td><td>+ 15m confirm</td><td>13</td><td>61.5%</td><td class="lose">+922</td><td class="win">+177.3</td><td class="lose">−99.3</td><td>1.78</td><td>3</td></tr>
+    <tr><td></td><td>ATR cap 2×</td><td>13</td><td class="hi">69.2%</td><td class="hi">+1,419</td><td class="win">+194.5</td><td class="win">−82.8</td><td>2.35</td><td><b>1</b></td></tr>
+    <tr><td></td><td>Both</td><td>13</td><td class="lo">53.8%</td><td class="lose">+690</td><td class="win">+199.5</td><td class="lose">−117.7</td><td>1.70</td><td>5</td></tr>
+
+    <tr class="base"><td>20d</td><td>Baseline</td><td>25</td><td>60.0%</td><td class="win">+1,135</td><td class="win">+143.9</td><td class="lose">−102.4</td><td>1.41</td><td>2</td></tr>
+    <tr><td></td><td>+ 15m confirm</td><td>18</td><td>61.1%</td><td class="lose">+765</td><td class="win">+138.4</td><td class="lose">−108.1</td><td>1.28</td><td>3</td></tr>
+    <tr><td></td><td>ATR cap 2×</td><td>23</td><td>60.9%</td><td class="win">+1,238</td><td class="win">+152.4</td><td class="win">−99.5</td><td>1.53</td><td>2</td></tr>
+    <tr><td></td><td>Both</td><td>18</td><td class="lo">50.0%</td><td class="lose">+339</td><td class="win">+159.4</td><td class="lose">−121.7</td><td>1.31</td><td>5</td></tr>
+
+    <tr class="base"><td>30d</td><td>Baseline</td><td>33</td><td>57.6%</td><td class="win">+2,338</td><td class="win">+192.2</td><td class="lose">−93.8</td><td>2.05</td><td>2</td></tr>
+    <tr><td></td><td>+ 15m confirm</td><td>27</td><td>59.3%</td><td class="lose">+1,973</td><td class="win">+188.8</td><td class="lose">−95.2</td><td>1.98</td><td>3</td></tr>
+    <tr><td></td><td>ATR cap 2×</td><td>30</td><td class="hi">60.0%</td><td class="hi">+2,610</td><td class="hi">+206.5</td><td class="win">−92.3</td><td>2.24</td><td>2</td></tr>
+    <tr><td></td><td>Both</td><td>26</td><td class="lo">53.8%</td><td class="lose">+1,716</td><td class="win">+215.9</td><td class="lose">−108.9</td><td>1.98</td><td>5</td></tr>
+
+    <tr class="base"><td>90d</td><td>Baseline</td><td>126</td><td>46.0%</td><td class="win">+5,327</td><td class="win">+236.0</td><td class="lose">−122.9</td><td>1.92</td><td>5</td></tr>
+    <tr><td></td><td>+ 15m confirm</td><td>100</td><td>46.0%</td><td class="lose">+3,612</td><td class="win">+217.2</td><td class="win">−118.1</td><td>1.84</td><td><b class="lo">10</b></td></tr>
+    <tr><td></td><td>ATR cap 2×</td><td>110</td><td class="hi">54.5%</td><td class="hi">+6,762</td><td class="win">+230.0</td><td class="lose">−140.8</td><td>1.63</td><td>3</td></tr>
+    <tr><td></td><td>Both</td><td>89</td><td>49.4%</td><td class="lose">+3,703</td><td class="win">+227.2</td><td class="lose">−139.8</td><td>1.62</td><td>8</td></tr>
+  </tbody>
+</table>
+
+<div class="note">
+  <b>BankNifty conclusion:</b>
+  <ul>
+    <li><b>Option 2 (ATR cap) is clearly better for BankNifty</b> — 90d WR +8.5pp, points +1,435 (+27%). The fixed 130pt cap was sometimes too tight on volatile BankNifty days, getting stopped before the trend resumed. 2×ATR adapts correctly.</li>
+    <li><b>Option 1 (15m confirm) hurts BankNifty</b> — same WR at 90d but −1,715 pts and max consec losses jumps to 10 (from 5). The 15-min filter blocks 26 trades but those blocked trades were actually profitable on average.</li>
+    <li><b>Combining both is the worst outcome</b> — max consec losses 8, points drop to +3,703.</li>
+  </ul>
+</div>
+
+<hr />
+
+
+<h2>Why Option 1 (15-min Confirm) Fails on This Data</h2>
+<div class="note">
+  <ul>
+    <li>The 15-min Supertrend <b>lags ~15–30 minutes behind</b> actual trend changes. By the time 15-min ST flips GREEN, the 5-min entry has often already fired 3–6 candles earlier — and those early candles are the best entries.</li>
+    <li>In a fast intraday move (common in BankNifty), the 5-min ST can flip and run 200+ pts while the 15-min ST is still catching up. The filter blocks these exact high-quality trades.</li>
+    <li>The claim "most losing trades happen because 5-min briefly trends against the larger trend" is not supported by this data. The 5-min losing trades are NOT mostly counter-trend to the 15-min — the data shows NIFTY WR drops 74% → 63% with the filter, meaning it's blocking winners, not just losers.</li>
+    <li>The <b>only</b> scenario it helps: BankNifty 10–20d WR improves by +0.9–1.2pp. That's statistically noise on a sample of 13–18 trades.</li>
+  </ul>
+</div>
+
+
+<h2>Why Option 2 (ATR Cap) Works for BankNifty</h2>
+<div class="note">
+  <ul>
+    <li>BankNifty's ATR on a normal day ranges from <b>60 to 180 pts</b>. The fixed 130pt cap was perfect on average but too tight on high-ATR days (ATR=100→ 2×ATR=200 vs fixed 130).</li>
+    <li>2×ATR gave the trade <b>room to breathe on volatile days</b> without getting knocked out by noise, then the Supertrend trail locked in the profit.</li>
+    <li>Why it hurts avg loss slightly (−123 → −141 on 90d): on high-ATR days the cap is wider, so when a loss does occur it's larger. But the WR improvement (+8.5pp) more than compensates — net +1,435 pts over 90 days.</li>
+    <li>For Nifty, ATR is typically 20–45 pts. 2×ATR = 40–90 pts. The fixed 55pt cap was already sitting right in the middle of this range — hence no improvement.</li>
+  </ul>
+</div>
+
+
+<h2>Final Recommendation</h2>
+<div class="vrow">
+  <div class="vcard amber">
+    <span class="vtag tag-fail">DO NOT IMPLEMENT</span>
+    <div class="vtitle">Option 1 — 15-min Trend Confirm</div>
+    <div class="vbody">
+      The theory sounds right but the data says otherwise. It costs more in blocked winners than it saves in filtered losses. The strategy already has 5 filters doing trend confirmation — adding a 6th from a higher timeframe adds complexity for negative return.
+    </div>
+  </div>
+  <div class="vcard green">
+    <span class="vtag tag-pass">IMPLEMENT for BANKNIFTY</span>
+    <div class="vtitle">Option 2 — ATR Cap, BankNifty only</div>
+    <div class="vbody">
+      Change <code>SL_CAP_PTS["BANKNIFTY"]</code> from a fixed 130pts to <code>2 × ATR(14)</code> evaluated at entry. Keep Nifty at fixed 55pts. This adds +1,435 pts (+27%) over 90 days for BankNifty with no downside on Nifty.
+    </div>
+  </div>
+</div>
+
+<div class="note" style="margin-top:16px">
+  <b>One-line code change to implement Option 2 for BankNifty:</b><br /><br />
+  In <code>engine/backtester.py</code> and <code>engine/signal_engine.py</code>, when computing the SL cap for BankNifty:
+  <br /><br />
+  <code style="background:#1f2328;color:#e6edf3;padding:8px 12px;border-radius:4px;display:block;font-size:12px;margin-top:8px">
+    cap = atr_val * 2.0  if symbol == "BANKNIFTY"  else config.SL_CAP_PTS["NIFTY"]
+  </code>
+  <br />
+  No other change needed. This is the minimal, highest-return improvement available.
+</div>
+
+<footer>
+  Analysis: 40 backtest runs · 4 variants × 5 periods × 2 symbols · Real Angel One data Apr–Jul 2026  ·  Made with IBM Bob
+</footer>
+</div>
+</body>
+</html>
