@@ -203,12 +203,10 @@ def evaluate_signal(df: pd.DataFrame, symbol: str = "") -> dict:
 
     # ── SL cap: fixed pts for Nifty, ATR-based for BankNifty and all stocks ──
     if symbol in config.SL_CAP_PTS:
-        # Nifty: fixed-point cap
         cap = config.SL_CAP_PTS[symbol]
     elif symbol == "BANKNIFTY":
         cap = round(atr_val * getattr(config, "ATR_SL_MULT_BANKNIFTY", 2.0), 2)
     else:
-        # All stocks: ATR-based cap from ATR_SL_MULT_STOCKS, fallback 2.0×ATR
         mult = getattr(config, "ATR_SL_MULT_STOCKS", {}).get(symbol, 2.0)
         cap  = round(atr_val * mult, 2)
 
@@ -247,8 +245,6 @@ def eval_entry_signal(row) -> str:
     Used by:
       - evaluate_signal()        (live dashboard)
       - engine.backtester        (backtest engine)
-      - analyse_options.py       (research script)
-      - analyse_exits.py         (research script)
 
     Parameters
     ----------

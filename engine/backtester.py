@@ -61,7 +61,6 @@ def _is_expiry_skip(symbol: str, cdate) -> bool:
     skip_weekday = getattr(config, "SKIP_EXPIRY_DAY", {}).get(symbol)
     if skip_weekday is None:
         return False
-    # cdate can be a date object or a string; normalise to weekday int
     if hasattr(cdate, "weekday"):
         return cdate.weekday() == skip_weekday
     return pd.Timestamp(cdate).weekday() == skip_weekday
@@ -96,7 +95,6 @@ def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.D
     elif symbol == "BANKNIFTY":
         atr_cap_mult = getattr(config, "ATR_SL_MULT_BANKNIFTY", 2.0)
     else:
-        # Stock: read per-symbol ATR mult, fallback 2.0
         atr_cap_mult = getattr(config, "ATR_SL_MULT_STOCKS", {}).get(symbol, 2.0)
 
     warmup = max(config.EMA_SLOW, config.RSI_PERIOD, config.ST_PERIOD) + 10
@@ -166,11 +164,8 @@ def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.D
                     open_trade["sl"] = min(open_trade["sl"], st_trail)
 
             # ── 2. Hard SL cap backstop ───────────────────────────────────────
-            # Nifty: fixed pts cap.  BankNifty: recalculate 2×ATR each candle
-            # (ATR updates as volatility changes — cap tightens/widens accordingly)
             entry = open_trade["entry_price"]
             if atr_cap_mult is not None:
-                # BankNifty dynamic cap — use current candle ATR, not entry ATR
                 live_cap = round(atr_val * atr_cap_mult, 2) if atr_val else open_trade["entry_atr"] * atr_cap_mult
             else:
                 live_cap = fixed_cap
@@ -255,12 +250,6 @@ def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.D
 
 def _open(symbol, cdate, cdt, close, direction, st_val, atr_val,
           rsi_val, adx_val, vwap_val, fixed_cap, atr_cap_mult) -> dict:
-    """
-    Open a new trade.
-    Initial SL = tighter of (Supertrend SL, hard cap).
-    Nifty   : hard cap = fixed_cap pts.
-    BankNifty: hard cap = atr_val × atr_cap_mult (2×ATR at entry).
-    """
     cap = (round(atr_val * atr_cap_mult, 2) if atr_cap_mult is not None and atr_val
            else (fixed_cap or 9999))
     if direction == SIGNAL_BUY:
@@ -284,7 +273,7 @@ def _open(symbol, cdate, cdt, close, direction, st_val, atr_val,
         "entry_price" : round(close, 2),
         "sl"          : round(sl, 2),
         "target"      : target,
-        "entry_atr"   : round(atr_val, 2),  # stored for dynamic cap fallback
+        "entry_atr"   : round(atr_val, 2),
         "rsi"         : round(rsi_val, 2),
         "adx"         : round(adx_val, 2),
         "vwap"        : round(vwap_val, 2),
@@ -335,11 +324,10 @@ def summary_stats(trades: pd.DataFrame) -> dict:
         streak   = streak + 1 if r == "LOSS" else 0
         max_loss = max(max_loss, streak)
 
-    # Max drawdown — largest peak-to-trough drop in cumulative equity
     cum   = trades["points"].cumsum()
     peak  = cum.cummax()
     dd    = cum - peak
-    max_dd = round(dd.min(), 2)   # negative number (e.g. -245.0)
+    max_dd = round(dd.min(), 2)
 
     return {
         "total_trades"   : total,

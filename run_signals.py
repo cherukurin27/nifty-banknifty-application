@@ -82,7 +82,6 @@ def main():
                     continue
 
                 if candles[sym] is None or candles[sym].empty:
-                    # Fetch 5 days so indicators (need ≥26 candles) warm up on first load
                     df = fetch_candles(api, cfg["token"], cfg["exchange"], days_back=5)
                 else:
                     df = refresh_candles(api, candles[sym], cfg["token"], cfg["exchange"])
