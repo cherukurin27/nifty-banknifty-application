@@ -466,3 +466,253 @@
 [D 260719 09:38:14 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
 [I 260719 09:38:14 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
 [I 260719 09:38:54 smartConnect:124] in pool
+[I 260719 09:59:58 smartConnect:124] in pool
+[I 260719 10:00:30 smartConnect:124] in pool
+[I 260719 10:11:53 smartConnect:124] in pool
+[D 260719 10:14:29 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:14:29 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 10:14:31 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:14:31 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 10:15:30 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:15:30 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 10:15:31 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:15:31 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 10:16:31 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:16:31 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 10:16:33 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:16:33 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 10:17:32 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:17:32 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 10:17:34 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:17:34 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 10:18:33 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:18:33 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 10:18:35 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:18:35 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 10:19:34 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:19:34 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 10:19:36 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:19:36 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 10:20:35 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:20:35 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 10:20:36 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:20:36 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[I 260719 10:21:12 smartConnect:124] in pool
+[I 260719 10:22:32 smartConnect:124] in pool
+[I 260719 10:26:20 smartConnect:124] in pool
+[I 260719 10:36:58 smartConnect:124] in pool
+[I 260719 10:40:24 smartConnect:124] in pool
+[D 260719 10:41:34 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:41:34 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 10:41:34 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:41:34 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 10:42:35 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:42:35 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 10:42:35 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:42:35 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 10:43:36 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:43:36 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 10:43:36 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:43:36 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[I 260719 10:44:12 smartConnect:124] in pool
+[D 260719 10:44:37 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:44:37 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 10:44:37 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:44:37 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 10:45:38 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:45:38 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 10:45:38 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:45:38 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 10:46:39 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:46:39 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 10:46:40 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:46:40 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 10:47:40 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:47:40 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 10:47:40 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:47:40 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 10:48:41 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:48:41 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 10:48:41 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 10:48:41 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[I 260719 10:49:13 smartConnect:124] in pool
+[I 260719 11:00:23 smartConnect:124] in pool
+[I 260719 11:03:49 smartConnect:124] in pool
+[D 260719 11:04:18 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:04:18 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:04:18 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:04:18 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:04:26 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:04:26 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:04:26 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:04:26 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:05:19 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:05:19 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:05:20 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:05:20 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:05:27 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:05:27 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:05:27 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:05:27 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[I 260719 11:05:56 smartConnect:124] in pool
+[D 260719 11:06:20 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:06:20 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:06:20 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:06:20 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:06:28 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:06:28 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:06:28 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:06:28 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:07:21 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:07:21 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:07:21 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:07:21 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:07:29 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:07:29 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:07:29 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:07:29 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[I 260719 11:07:42 smartConnect:124] in pool
+[D 260719 11:08:22 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:08:22 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:08:22 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:08:22 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:08:30 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:08:30 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:08:30 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:08:30 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:09:23 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:09:23 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:09:23 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:09:23 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:09:31 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:09:31 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:09:31 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:09:31 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:10:24 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:10:24 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:10:24 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:10:24 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:10:32 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:10:32 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:10:32 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:10:32 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:11:25 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:11:25 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:11:25 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:11:25 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:11:33 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:11:33 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:11:33 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:11:33 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:12:26 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:12:26 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:12:26 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:12:26 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:12:34 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:12:34 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:12:34 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:12:34 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:13:27 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:13:27 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:13:27 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:13:27 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:13:35 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:13:35 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:13:35 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:13:35 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:14:28 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:14:28 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:14:29 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:14:29 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:14:36 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:14:36 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:14:37 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:14:37 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:15:29 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:15:29 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:15:29 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:15:29 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:15:37 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:15:37 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:15:37 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:15:37 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:16:30 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:16:30 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:16:30 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:16:30 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:16:38 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:16:38 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:16:38 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:16:38 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:17:31 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:17:31 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:17:31 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:17:31 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:17:39 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:17:39 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:17:39 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:17:39 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:18:32 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:18:32 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:18:32 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:18:32 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:18:40 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:18:40 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:18:40 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:18:40 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:19:33 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:19:33 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:19:33 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:19:33 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:19:41 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:19:41 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:19:41 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:19:41 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:20:34 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:20:34 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:20:34 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:20:34 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:20:41 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:20:41 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:20:42 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:20:42 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:21:34 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:21:34 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:21:35 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:21:35 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:21:43 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:21:43 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:21:43 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:21:43 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:22:36 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:22:36 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:22:36 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:22:36 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:22:44 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:22:44 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:22:44 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:22:44 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:23:37 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:23:37 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:23:37 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:23:37 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:23:45 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:23:45 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:23:45 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:23:45 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:24:38 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:24:38 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:24:38 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:24:38 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:24:46 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:24:46 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:24:46 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:24:46 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:25:39 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:25:39 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:25:39 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:25:39 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 11:25:47 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:25:47 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 11:25:47 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 11:25:47 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009

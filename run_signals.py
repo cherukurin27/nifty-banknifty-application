@@ -71,8 +71,16 @@ def main():
             time.sleep(wait_secs)
             continue
 
+        today_weekday = datetime.datetime.now().weekday()
+
         for sym, cfg in config.INSTRUMENTS.items():
             try:
+                # ── Expiry-day skip ───────────────────────────────────────────
+                skip_weekday = getattr(config, "SKIP_EXPIRY_DAY", {}).get(sym)
+                if skip_weekday is not None and today_weekday == skip_weekday:
+                    print(f"[{now.strftime('%H:%M:%S')}] {sym:12s} | Expiry day — skipping all entries today.")
+                    continue
+
                 if candles[sym] is None or candles[sym].empty:
                     # Fetch 5 days so indicators (need ≥26 candles) warm up on first load
                     df = fetch_candles(api, cfg["token"], cfg["exchange"], days_back=5)

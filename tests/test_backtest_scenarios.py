@@ -22,8 +22,13 @@ from engine.indicators import add_indicators
 from engine.signal_engine import (
     SIGNAL_BUY, SIGNAL_SELL, SIGNAL_NONE,
     eval_entry_signal, evaluate_signal,
+    _is_expiry_skip, _no_new_entry_time,
 )
-from engine.backtester import run_backtest, summary_stats
+from engine.backtester import (
+    run_backtest, summary_stats,
+    _is_expiry_skip as _bt_is_expiry_skip,
+    _no_new_entry_time as _bt_no_new_entry_time,
+)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -471,15 +476,18 @@ class TestRunBacktest:
             exit_dates  = pd.to_datetime(trades["exit_time"]).dt.date
             assert (entry_dates == exit_dates).all(), "Trade carried overnight!"
 
-    def test_no_entry_after_1330(self):
-        """No new trade should open after 13:30 IST."""
+    def test_no_entry_after_no_new_entry_cutoff(self):
+        """No new trade should open after config.NO_NEW_ENTRY_AFTER."""
         df = _make_session_candles(n_per_day=75, n_days=5, trend="up")
         trades, _ = run_backtest(df, "NIFTY")
         if not trades.empty:
+            h, m = map(int, config.NO_NEW_ENTRY_AFTER.split(":"))
+            cutoff = datetime.time(h, m)
             entry_times = pd.to_datetime(trades["entry_time"]).dt.time
-            cutoff = datetime.time(13, 30)
             for et in entry_times:
-                assert et <= cutoff, f"Entry at {et} is after 13:30"
+                assert et <= cutoff, (
+                    f"Entry at {et} is after NO_NEW_ENTRY_AFTER ({config.NO_NEW_ENTRY_AFTER})"
+                )
 
     # ── summary_stats ────────────────────────────────────────────────────────
 
@@ -646,6 +654,103 @@ class TestRunBacktest:
         })
         trades, diag = run_backtest(df, "NIFTY")
         assert isinstance(trades, pd.DataFrame)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SKIP_EXPIRY_DAY and NO_NEW_ENTRY_AFTER helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestExpirySkipHelper:
+    """Tests for _is_expiry_skip in both signal_engine and backtester."""
+
+    def test_nifty_thursday_skipped(self):
+        # 2026-01-01 is Thursday (weekday=3)
+        ts = pd.Timestamp("2026-01-01 10:00:00")
+        assert _is_expiry_skip("NIFTY", ts) is True
+
+    def test_nifty_non_thursday_not_skipped(self):
+        # 2026-01-02 is Friday
+        ts = pd.Timestamp("2026-01-02 10:00:00")
+        assert _is_expiry_skip("NIFTY", ts) is False
+
+    def test_banknifty_never_skipped(self):
+        # BankNifty has None in config — no day should be skipped
+        for day_offset in range(7):
+            ts = pd.Timestamp("2026-01-01") + pd.Timedelta(days=day_offset)
+            assert _is_expiry_skip("BANKNIFTY", ts) is False
+
+    def test_unknown_symbol_not_skipped(self):
+        ts = pd.Timestamp("2026-01-01 10:00:00")
+        assert _is_expiry_skip("UNKNOWN", ts) is False
+
+    def test_backtester_helper_matches_signal_engine_helper(self):
+        """Both modules must produce identical results for same inputs."""
+        for day_offset in range(7):
+            ts = pd.Timestamp("2026-01-01") + pd.Timedelta(days=day_offset)
+            for sym in ["NIFTY", "BANKNIFTY"]:
+                se_result = _is_expiry_skip(sym, ts)
+                bt_result = _bt_is_expiry_skip(sym, ts.date())
+                assert se_result == bt_result, (
+                    f"Mismatch for {sym} on {ts.date()}: "
+                    f"signal_engine={se_result}, backtester={bt_result}"
+                )
+
+    def test_expiry_skip_with_date_object(self):
+        """backtester uses date objects directly — must still work."""
+        thursday = datetime.date(2026, 1, 1)   # Thursday
+        assert _bt_is_expiry_skip("NIFTY", thursday) is True
+        friday = datetime.date(2026, 1, 2)
+        assert _bt_is_expiry_skip("NIFTY", friday) is False
+
+    def test_no_trades_on_expiry_day(self):
+        """
+        Build a 5-day dataset that starts on a Thursday (2026-01-01).
+        NIFTY Thursday entries must be skipped → no trades with entry on Thursday.
+        """
+        # 2026-01-01 = Thursday; build enough days for warmup
+        df = _make_session_candles(n_per_day=75, n_days=10, trend="up",
+                                   symbol="NIFTY")
+        # Override datetimes to start on Thu 2026-01-01
+        # (helper already places dates in chronological weekday order)
+        trades, _ = run_backtest(df, "NIFTY")
+        if not trades.empty:
+            for _, row in trades.iterrows():
+                trade_date = pd.Timestamp(row["date"])
+                skip_wd = getattr(config, "SKIP_EXPIRY_DAY", {}).get("NIFTY")
+                if skip_wd is not None:
+                    assert trade_date.weekday() != skip_wd, (
+                        f"Trade opened on expiry day: {trade_date.date()}"
+                    )
+
+
+class TestNoNewEntryTime:
+    """Tests for _no_new_entry_time helper in both modules."""
+
+    def test_returns_time_object(self):
+        t = _no_new_entry_time()
+        assert isinstance(t, datetime.time)
+
+    def test_matches_config_value(self):
+        h, m = map(int, config.NO_NEW_ENTRY_AFTER.split(":"))
+        assert _no_new_entry_time() == datetime.time(h, m)
+
+    def test_backtester_helper_matches_signal_engine(self):
+        assert _no_new_entry_time() == _bt_no_new_entry_time()
+
+    def test_evaluate_signal_respects_cutoff(self):
+        """evaluate_signal must return NONE when candle is after the cut-off."""
+        df = _make_session_candles(n_per_day=75, n_days=3, trend="up")
+        # Force last candle to be after NO_NEW_ENTRY_AFTER
+        h, m = map(int, config.NO_NEW_ENTRY_AFTER.split(":"))
+        after_cutoff = datetime.time(h, m + 5 if m <= 54 else 59)
+        df = df.copy()
+        last_date = pd.to_datetime(df.iloc[-1]["datetime"]).date()
+        df.loc[df.index[-1], "datetime"] = pd.Timestamp(
+            datetime.datetime.combine(last_date, after_cutoff)
+        )
+        result = evaluate_signal(df, symbol="NIFTY")
+        assert result["signal"] == SIGNAL_NONE
+        assert config.NO_NEW_ENTRY_AFTER in result["reason"]
 
 
 # ─────────────────────────────────────────────────────────────────────────────

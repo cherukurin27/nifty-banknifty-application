@@ -4,10 +4,10 @@ engine/backtester.py — Walk-forward backtest with Supertrend trailing SL.
 Entry filters (ALL must be true simultaneously) — evaluated via eval_entry_signal():
   1. Supertrend GREEN/RED
   2. Price vs EMA21  (price must be on the correct side of the trend)
-  3. RSI in [45,80] BUY / [25,55] SELL
+  3. RSI in [RSI_BUY_LOW, RSI_BUY_HIGH] BUY / [RSI_SELL_LOW, RSI_SELL_HIGH] SELL
   4. Price vs VWAP   (above for BUY, below for SELL)
-  5. ADX in [20,60]  (trending but not overextended)
-  Entry window: 09:40 – 13:30 IST
+  5. ADX in [ADX_THRESHOLD, ADX_MAX]  (trending but not overextended)
+  Entry window: SESSION_START – NO_NEW_ENTRY_AFTER IST
 
 Exit logic (in priority order):
   1. SUPERTREND TRAIL SL — BUY: SL = st_value (trails up); SELL: SL = st_value (trails down)
@@ -16,6 +16,9 @@ Exit logic (in priority order):
   4. RSI MOMENTUM EXIT   — BUY RSI<40; SELL RSI>60 (wide band, avoids noise)
   5. EOD EXIT            — force close 15:15 IST
   6. REVERSE SIGNAL      — 2 consecutive opposite-direction candles (Option B)
+
+Extra filters (config-driven):
+  SKIP_EXPIRY_DAY — skip all new entries on the symbol's weekly expiry weekday
 
 Dependencies:
   engine.signal_engine.eval_entry_signal — shared 5-filter entry logic (single source of truth)
@@ -31,7 +34,8 @@ import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 import config
 from engine.indicators import add_indicators
-from engine.signal_engine import SIGNAL_BUY, SIGNAL_SELL, SIGNAL_NONE, eval_entry_signal
+from engine.signal_engine import (SIGNAL_BUY, SIGNAL_SELL, SIGNAL_NONE,
+                                   eval_entry_signal, _bnkn_skip_slot, _rsi_buy_high)
 from engine.utils import strip_tz, force_exit_dt
 
 
@@ -42,22 +46,58 @@ def _in_session(dt) -> bool:
     return datetime.time(9, 30) <= t <= datetime.time(14, 30)
 
 
+def _no_new_entry_time() -> datetime.time:
+    """Returns the NO_NEW_ENTRY_AFTER cut-off from config as a time object."""
+    h, m = map(int, config.NO_NEW_ENTRY_AFTER.split(":"))
+    return datetime.time(h, m)
+
+
+def _is_expiry_skip(symbol: str, cdate) -> bool:
+    """
+    Returns True if new entries should be skipped for this symbol today.
+    Uses config.SKIP_EXPIRY_DAY — a dict mapping symbol → Python weekday int
+    (Mon=0, Tue=1, Wed=2, Thu=3, Fri=4) or None to never skip.
+    """
+    skip_weekday = getattr(config, "SKIP_EXPIRY_DAY", {}).get(symbol)
+    if skip_weekday is None:
+        return False
+    # cdate can be a date object or a string; normalise to weekday int
+    if hasattr(cdate, "weekday"):
+        return cdate.weekday() == skip_weekday
+    return pd.Timestamp(cdate).weekday() == skip_weekday
+
+
 # ─── core ────────────────────────────────────────────────────────────────────
+
+def _bnkn_slot_skip(symbol: str, t: datetime.time) -> bool:
+    """Thin wrapper — delegates to signal_engine._bnkn_skip_slot for the backtester."""
+    return _bnkn_skip_slot(symbol, t)
+
 
 def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     df_full = df_full.copy()
     df_full["datetime"] = pd.to_datetime(df_full["datetime"])
     df_full = df_full.sort_values("datetime").reset_index(drop=True)
     df_ind  = add_indicators(df_full.copy())
+    df_ind["symbol"] = symbol   # so eval_entry_signal can apply symbol-specific overrides
 
     trades      = []
     diag_rows   = []
     open_trade  = None
     pending_rev = None
     prev_date   = None
-    # Nifty: fixed-point cap; BankNifty: dynamic per-candle 2×ATR (set in _open / trailing)
-    fixed_cap   = config.SL_CAP_PTS.get(symbol)          # None for BankNifty
-    atr_cap_mult = getattr(config, "ATR_SL_MULT_BANKNIFTY", 2.0) if symbol == "BANKNIFTY" else None
+    # SL cap resolution:
+    #   Nifty        : fixed pts from SL_CAP_PTS
+    #   BankNifty    : dynamic 2×ATR (ATR_SL_MULT_BANKNIFTY)
+    #   Stocks       : dynamic ATR-based from ATR_SL_MULT_STOCKS (default 2.0×)
+    fixed_cap = config.SL_CAP_PTS.get(symbol)   # non-None only for NIFTY
+    if fixed_cap is not None:
+        atr_cap_mult = None                      # Nifty uses fixed pts, not ATR mult
+    elif symbol == "BANKNIFTY":
+        atr_cap_mult = getattr(config, "ATR_SL_MULT_BANKNIFTY", 2.0)
+    else:
+        # Stock: read per-symbol ATR mult, fallback 2.0
+        atr_cap_mult = getattr(config, "ATR_SL_MULT_STOCKS", {}).get(symbol, 2.0)
 
     warmup = max(config.EMA_SLOW, config.RSI_PERIOD, config.ST_PERIOD) + 10
 
@@ -173,7 +213,9 @@ def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.D
             if pending_rev == reverse and sig_label == reverse:
                 _close(trades, open_trade, cdt, close, "Reverse Signal")
                 open_trade = None; pending_rev = None
-                if cdt_n.time() <= datetime.time(13, 30):
+                if (cdt_n.time() <= _no_new_entry_time()
+                        and not _is_expiry_skip(symbol, cdate)
+                        and not _bnkn_slot_skip(symbol, cdt_n.time())):
                     open_trade = _open(symbol, cdate, cdt, close, sig_label,
                                        st_val, atr_val, rsi_now, adx_val, vwap_val,
                                        fixed_cap, atr_cap_mult)
@@ -185,9 +227,11 @@ def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.D
         # NO OPEN TRADE — look for entry
         # ══════════════════════════════════════════════════════════════════════
         else:
-            if cdt_n >= force_exit_dt(cdate):              continue
-            if cdt_n.time() > datetime.time(13, 30):       continue
-            if cdt_n.time() < datetime.time(9, 40):        continue
+            if cdt_n >= force_exit_dt(cdate):                      continue
+            if cdt_n.time() > _no_new_entry_time():                continue
+            if cdt_n.time() < datetime.time(9, 40):                continue
+            if _is_expiry_skip(symbol, cdate):                     continue
+            if _bnkn_slot_skip(symbol, cdt_n.time()):              continue
 
             if sig_label != SIGNAL_NONE:
                 open_trade  = _open(symbol, cdate, cdt, close, sig_label,
