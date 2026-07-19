@@ -5,6 +5,7 @@ Rules:
   BUY  : Supertrend=GREEN  AND close>EMA21 AND RSI in [45,80] AND close>VWAP AND ADX in [20,60]
   SELL : Supertrend=RED    AND close<EMA21 AND RSI in [25,55] AND close<VWAP AND ADX in [20,60]
 
+  All 5 filters must be true simultaneously (Supertrend, EMA21, RSI, VWAP, ADX).
   EMA condition: Price vs EMA21 (slow EMA) — price must be on the correct side of the trend.
   RSI upper bound widened to 80 to capture strong-trend continuation moves.
 
@@ -163,6 +164,51 @@ def evaluate_signal(df: pd.DataFrame, symbol: str = "") -> dict:
     failed_sell = [k for k, v in sell_conditions.items() if not v]
     reason = f"BUY failed: {failed_buy} | SELL failed: {failed_sell}"
     return {**base, "signal": SIGNAL_NONE, "sl": None, "target": None, "reason": reason}
+
+
+# ─── Shared entry-condition evaluator (used by backtester & research scripts) ─
+
+def eval_entry_signal(row) -> str:
+    """
+    Single source of truth for the 5-filter entry logic.
+    Returns SIGNAL_BUY, SIGNAL_SELL, or SIGNAL_NONE.
+
+    Used by:
+      - evaluate_signal()        (live dashboard)
+      - engine.backtester        (backtest engine)
+      - analyse_options.py       (research script)
+      - analyse_exits.py         (research script)
+
+    Parameters
+    ----------
+    row : dict-like (DataFrame row) containing indicator columns from
+          engine.indicators.add_indicators():
+          adx, rsi, vwap, st_signal, ema_slow, close.
+    """
+    import numpy as np
+    adx_val  = float(row.get("adx")      or 0)
+    rsi_val  = float(row.get("rsi")      or 0)
+    vwap_val = float(row.get("vwap")     or 0)
+    st_sig   = int(row.get("st_signal")  or 0)
+    ema_s    = float(row.get("ema_slow") or 0)
+    close    = float(row.get("close")    or 0)
+
+    adx_max = config.ADX_MAX if isinstance(config.ADX_MAX, (int, float)) else 60
+    adx_ok  = (not np.isnan(adx_val)) and config.ADX_THRESHOLD <= adx_val <= adx_max
+
+    buy_all = (adx_ok and st_sig == 1
+               and close > ema_s
+               and config.RSI_BUY_LOW  <= rsi_val <= config.RSI_BUY_HIGH
+               and close > vwap_val)
+
+    sell_all = (adx_ok and st_sig == -1
+                and close < ema_s
+                and config.RSI_SELL_LOW <= rsi_val <= config.RSI_SELL_HIGH
+                and close < vwap_val)
+
+    if buy_all:  return SIGNAL_BUY
+    if sell_all: return SIGNAL_SELL
+    return SIGNAL_NONE
 
 
 # ─── Helper ───────────────────────────────────────────────────────────────────

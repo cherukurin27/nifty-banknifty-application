@@ -3,6 +3,12 @@ run_signals.py — Headless CLI runner (no UI).
 Polls Angel One every 5 minutes and prints signals to the console + CSV.
 Use this if you don't want the Streamlit UI.
 
+Session window and force-exit time are read from config.py (SESSION_START,
+SESSION_END, FORCE_EXIT) — no hard-coded times in this file.
+
+Initial candle fetch uses days_back=5 to ensure indicators have enough
+warm-up data (≥ 26 candles required for EMA21 / RSI / Supertrend).
+
 Run with:
     python run_signals.py
 """
@@ -29,8 +35,10 @@ os.makedirs(config.LOG_DIR, exist_ok=True)
 
 def _in_session() -> bool:
     now = datetime.datetime.now().time()
-    start = datetime.time(9, 30)
-    end   = datetime.time(15, 15)
+    h, m = map(int, config.SESSION_START.split(":"))
+    start = datetime.time(h, m)
+    h, m  = map(int, config.SESSION_END.split(":"))
+    end   = datetime.time(h, m)
     return start <= now <= end
 
 
@@ -50,9 +58,11 @@ def main():
         now = datetime.datetime.now()
 
         # Force exit check
-        if now.time() >= datetime.time(15, 16):
-            logger.info("Past 3:15 PM — stopping runner for today.")
-            print("Past 3:15 PM. Shutting down for today.")
+        h, m = map(int, config.FORCE_EXIT.split(":"))
+        force_exit_time = datetime.time(h, m)
+        if now.time() >= force_exit_time:
+            logger.info("Past %s — stopping runner for today.", config.FORCE_EXIT)
+            print(f"Past {config.FORCE_EXIT}. Shutting down for today.")
             break
 
         if not _in_session():
@@ -64,7 +74,8 @@ def main():
         for sym, cfg in config.INSTRUMENTS.items():
             try:
                 if candles[sym] is None or candles[sym].empty:
-                    df = fetch_candles(api, cfg["token"], cfg["exchange"])
+                    # Fetch 5 days so indicators (need ≥26 candles) warm up on first load
+                    df = fetch_candles(api, cfg["token"], cfg["exchange"], days_back=5)
                 else:
                     df = refresh_candles(api, candles[sym], cfg["token"], cfg["exchange"])
 

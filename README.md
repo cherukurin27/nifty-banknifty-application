@@ -213,27 +213,32 @@ Any early exit variant destroys that. The Supertrend trail IS the optimal exit.
 ## Project Structure
 
 ```
-Nifty_banknifty/
+nifty-banknifty-application/
 │
 ├── app.py                      # Streamlit app — Live Signals + Backtest + Journal tabs
 ├── run_signals.py              # Headless CLI runner (prints signals to console)
 ├── config.py                   # ALL credentials + strategy parameters (edit here only)
 ├── multi_period_backtest.py    # Runs backtest for 10/20/30/60/90 days, prints table
 ├── debug_backtest.py           # Quick terminal debug — indicator values + trade list
-├── backtest_app.py             # Legacy standalone backtest (superseded by app.py tab)
+├── analyse_options.py          # Research: 15m-confirm + ATR-cap variants vs baseline
+├── analyse_exits.py            # Research: 4 exit-management variants vs baseline
 ├── requirements.txt
 │
 ├── feed/
 │   ├── angel_auth.py           # TOTP login → Angel One SmartConnect session
-│   └── data_feed.py            # fetch_candles() with 30-day chunking + tz normalisation
+│   └── data_feed.py            # fetch_candles() with 30-day chunking + correct datetime range
 │
 ├── engine/
 │   ├── indicators.py           # Supertrend, EMA, RSI, VWAP, ATR, ADX
-│   ├── signal_engine.py        # 5-filter live signal evaluation
-│   └── backtester.py           # Walk-forward backtest (Supertrend trail + dynamic SL cap)
+│   ├── signal_engine.py        # 5-filter live signal evaluation + shared eval_entry_signal()
+│   ├── backtester.py           # Walk-forward backtest (Supertrend trail + dynamic SL cap)
+│   └── utils.py                # Shared helpers: strip_tz(), force_exit_dt()
 │
 ├── alerts/
 │   └── notifier.py             # Desktop notification + Telegram bot + CSV signal logger
+│
+├── tests/
+│   └── test_backtest_scenarios.py  # 65-test suite (no API needed — synthetic data)
 │
 └── logs/
     ├── signal_log.csv          # Auto-created — every signal fired
@@ -247,7 +252,7 @@ Nifty_banknifty/
 
 ### Prerequisites
 
-- Python 3.10 or 3.11
+- Python 3.10, 3.11, or 3.13
 - Angel One trading account with SmartAPI access enabled
 - TOTP authenticator app linked to your Angel One account
 
@@ -268,11 +273,8 @@ All required packages are in `requirements.txt`:
 | `streamlit-autorefresh` | 1.0.1 | 60-second auto-refresh on Live tab |
 | `pyotp` | 2.9.0 | TOTP code generation for login |
 | `logzero` | 1.7.0 | Structured logging |
-| `requests` | 2.31.0 | HTTP calls (data + Telegram alerts) |
-| `websocket-client` | 1.6.4 | WebSocket feed |
-| `schedule` | 1.2.1 | CLI runner scheduling |
-| `pandas-ta` | 0.3.14b | Technical analysis helpers |
-| `plyer` | 2.1.0 | Desktop notifications |
+| `requests` | 2.31.0 | HTTP calls (Telegram alerts) |
+| `plyer` | 2.1.0 | Desktop notifications (optional) |
 
 ### 2. Credentials
 
@@ -403,6 +405,7 @@ All parameters live in [`config.py`](config.py). Edit only this file — nothing
 | Parameter | Value | Description |
 |-----------|-------|-------------|
 | `SESSION_START` | `"09:40"` | No entries before this (avoids opening noise) |
+| `SESSION_END` | `"14:30"` | Session close — positions can still be exited after this |
 | `NO_NEW_ENTRY_AFTER` | `"13:30"` | No new entries after this (let existing run) |
 | `FORCE_EXIT` | `"15:15"` | Force-close all trades at this time |
 | `MAX_TRADES_PER_SYMBOL` | `6` | Max trades per symbol per day |
@@ -427,6 +430,8 @@ All parameters live in [`config.py`](config.py). Edit only this file — nothing
 | **Timezone crash** | Angel One returns `+05:30` tz-aware timestamps; mixing with tz-naive causes errors | All timestamps normalised to tz-naive IST at fetch time using `.tz_convert().tz_localize(None)` |
 | **`applymap` deprecated** | Pandas 2.1+ removed `DataFrame.applymap()` | Replaced with `.map()` throughout (all three tabs) |
 | **90-day data limit** | Angel One SmartAPI caps candles at ~30 days per request | `fetch_candles()` auto-splits into 30-day chunks and concatenates |
+| **"Insufficient data" on first load** | `fromdate`/`todate` formatted as `date` objects → both got `HH:MM = 00:00` (midnight), returning 0–1 candles | `_fetch_chunk()` now builds proper `datetime` objects: `fromdate = 09:15`, `todate = min(15:30, now)` |
+| **Indicators fail on morning startup** | Initial `fetch_candles(days_back=1)` returned only 1–2 candles; indicators need ≥ 26 candles (EMA21 warmup) | Changed initial live fetch to `days_back=5` in both `app.py` and `run_signals.py` |
 
 ### Supertrend Algorithm
 
@@ -482,11 +487,13 @@ VWAP resets at 09:15 IST each day using `groupby(date).transform("cumsum")`.
 
 ```
 Angel One API
-    └── fetch_candles()       ← chunked 30-day requests, tz-normalised
-        └── add_indicators()  ← Supertrend → EMA → RSI → VWAP → ATR → ADX
-            ├── evaluate_signal()   ← live: current bar signal dict → Telegram + desktop alert
-            └── run_backtest()      ← historical: walk-forward bar by bar
-                └── summary_stats() ← win rate, R:R, max drawdown, equity curve
+    └── fetch_candles()          ← chunked 30-day requests, correct datetime range, tz-normalised
+        └── add_indicators()     ← Supertrend → EMA → RSI → VWAP → ATR → ADX
+            ├── evaluate_signal()      ← live: current bar signal dict → Telegram + desktop alert
+            │       └── eval_entry_signal()  ← shared 5-filter logic (single source of truth)
+            └── run_backtest()         ← historical: walk-forward bar by bar
+                    ├── eval_entry_signal()  ← same shared helper, no duplication
+                    └── summary_stats()      ← win rate, R:R, max drawdown, equity curve
 ```
 
 ---
@@ -497,17 +504,19 @@ Angel One API
 |------|---------|
 | `app.py` | Streamlit app — Live Signals + Backtest + Journal (3 tabs) |
 | `config.py` | All credentials, strategy parameters, Telegram config |
-| `run_signals.py` | Headless scheduled runner |
+| `run_signals.py` | Headless CLI runner — polls every 5 min, logs to CSV, respects `config` session times |
 | `debug_backtest.py` | Terminal debug — 30d data, full trade list |
 | `multi_period_backtest.py` | 10/20/30/60/90d comparison table |
-| `analyse_exits.py` | One-off analysis: 4 exit variants vs baseline (do not modify) |
-| `analyse_options.py` | One-off analysis: 15m confirm + ATR cap variants (do not modify) |
+| `analyse_exits.py` | Research script: 4 exit variants vs baseline (standalone, do not import) |
+| `analyse_options.py` | Research script: 15m confirm + ATR cap variants (standalone, do not import) |
 | `feed/angel_auth.py` | TOTP login, session creation |
-| `feed/data_feed.py` | Candle fetching, 30-day chunking, tz normalisation |
-| `engine/indicators.py` | All indicator calculations |
-| `engine/signal_engine.py` | Live signal evaluation |
-| `engine/backtester.py` | Walk-forward backtest engine + summary_stats (with max_drawdown) |
+| `feed/data_feed.py` | Candle fetching: 30-day chunking, correct IST datetime range, tz normalisation |
+| `engine/indicators.py` | All indicator calculations (Supertrend, EMA, RSI, VWAP, ATR, ADX) |
+| `engine/signal_engine.py` | Live signal evaluation + `eval_entry_signal()` shared helper |
+| `engine/backtester.py` | Walk-forward backtest engine + `summary_stats()` (with max_drawdown) |
+| `engine/utils.py` | Shared helpers: `strip_tz()`, `force_exit_dt()` |
 | `alerts/notifier.py` | Desktop popup + Telegram bot push + CSV logger |
+| `tests/test_backtest_scenarios.py` | 65-test suite covering all backtest code paths (no API needed) |
 | `logs/signal_log.csv` | Auto-created — every signal fired |
 | `logs/trade_log.csv` | Auto-created — completed trades (load in Journal tab) |
 | `logs/multi_period_results.csv` | Output of multi_period_backtest.py |
@@ -548,7 +557,8 @@ This software is for **educational and informational purposes only**.
 
 ---
 
-*Last updated: July 2026*  
-*Strategy: Supertrend(7,3) + EMA21 + RSI(45–80 / 25–55) + VWAP + ADX(20–60)*  
-*Exit: Supertrend trail + Hard SL cap (Nifty 55pts fixed / BankNifty 2×ATR dynamic)*  
+*Last updated: July 2026*
+*Strategy: Supertrend(7,3) + EMA21 + RSI(45–80 / 25–55) + VWAP + ADX(20–60)*
+*Exit: Supertrend trail + Hard SL cap (Nifty 55pts fixed / BankNifty 2×ATR dynamic)*
 *Alerts: Desktop (plyer) + Telegram (@cherukurin_bot)*
+*Tests: 65 unit + integration tests — `python -m pytest tests/ -v`*

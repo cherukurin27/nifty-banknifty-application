@@ -20,7 +20,8 @@ import datetime
 from feed.angel_auth import get_session
 from feed.data_feed import fetch_candles
 from engine.indicators import add_indicators
-from engine.signal_engine import SIGNAL_BUY, SIGNAL_SELL, SIGNAL_NONE
+from engine.signal_engine import SIGNAL_BUY, SIGNAL_SELL, SIGNAL_NONE, eval_entry_signal
+from engine.utils import strip_tz, force_exit_dt
 import config
 
 PERIODS = [10, 20, 30, 60, 90]
@@ -29,28 +30,6 @@ VARIANTS = ["A: ST trail (baseline)", "B: ST + partial 50% @1.5R",
             "C: ST + BE stop @1R",    "D: ST trail after 2R"]
 
 # ─── helpers ──────────────────────────────────────────────────────────────────
-
-def _strip_tz(dt):
-    dt = pd.Timestamp(dt)
-    if dt.tzinfo is not None:
-        dt = dt.tz_convert("Asia/Kolkata").tz_localize(None)
-    return dt.to_pydatetime()
-
-def _force_exit_dt(date):
-    return datetime.datetime.combine(date, datetime.time(15, 15))
-
-def _eval_signal(row, close):
-    adx_val  = float(row.get("adx")   or 0)
-    rsi_val  = float(row.get("rsi")   or 0)
-    vwap_val = float(row.get("vwap")  or 0)
-    st_sig   = int(row.get("st_signal") or 0)
-    ema_s    = float(row.get("ema_slow") or 0)
-    adx_ok   = (not np.isnan(adx_val)) and config.ADX_THRESHOLD <= adx_val <= config.ADX_MAX
-    buy  = adx_ok and st_sig==1  and close>ema_s and config.RSI_BUY_LOW<=rsi_val<=config.RSI_BUY_HIGH  and close>vwap_val
-    sell = adx_ok and st_sig==-1 and close<ema_s and config.RSI_SELL_LOW<=rsi_val<=config.RSI_SELL_HIGH and close<vwap_val
-    if buy:  return SIGNAL_BUY
-    if sell: return SIGNAL_SELL
-    return SIGNAL_NONE
 
 def _get_cap(symbol, atr_val):
     if symbol == "BANKNIFTY":
@@ -75,7 +54,7 @@ def run_variant(df_full, symbol, variant):
     for i in range(warmup, len(df_ind)):
         row   = df_ind.iloc[i]
         cdt   = pd.to_datetime(row["datetime"])
-        cdt_n = _strip_tz(cdt)
+        cdt_n = strip_tz(cdt)
         cdate = cdt_n.date()
         close = float(row["close"])
         high  = float(row["high"])
@@ -92,12 +71,12 @@ def run_variant(df_full, symbol, variant):
             pending_rev = None
             prev_date   = cdate
 
-        sig5 = _eval_signal(row, close)
+        sig5 = eval_entry_signal(row)
         cap  = _get_cap(symbol, atr_val)
 
         session_ok = datetime.time(9, 30) <= cdt_n.time() <= datetime.time(14, 30)
         if not session_ok:
-            if open_trade and cdt_n >= _force_exit_dt(cdate):
+            if open_trade and cdt_n >= force_exit_dt(cdate):
                 _close_t(trades, open_trade, cdt, close, "EOD Exit", variant)
                 open_trade = None; pending_rev = None
             continue
@@ -163,7 +142,7 @@ def run_variant(df_full, symbol, variant):
                         if sl_hit:
                             _close_t(trades, open_trade, cdt, sl, "SL Hit", variant)
                             open_trade=None; pending_rev=None; continue
-                        if cdt_n >= _force_exit_dt(cdate):
+                        if cdt_n >= force_exit_dt(cdate):
                             _close_t(trades, open_trade, cdt, close, "EOD Exit", variant)
                             open_trade=None; pending_rev=None; continue
                         pending_rev = sig5 if sig5 != SIGNAL_NONE else None
@@ -199,7 +178,7 @@ def run_variant(df_full, symbol, variant):
                 open_trade=None; pending_rev=None; continue
 
             # EOD
-            if cdt_n >= _force_exit_dt(cdate):
+            if cdt_n >= force_exit_dt(cdate):
                 _close_t(trades, open_trade, cdt, close, "EOD Exit", variant)
                 open_trade=None; pending_rev=None; continue
 
@@ -214,7 +193,7 @@ def run_variant(df_full, symbol, variant):
             pending_rev = sig5 if sig5 == rev else None
 
         else:
-            if cdt_n >= _force_exit_dt(cdate): continue
+            if cdt_n >= force_exit_dt(cdate): continue
             if cdt_n.time() > datetime.time(13, 30): continue
             if cdt_n.time() < datetime.time(9, 40):  continue
             if sig5 != SIGNAL_NONE:

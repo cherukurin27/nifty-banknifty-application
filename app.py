@@ -63,14 +63,13 @@ st.markdown("""
 # ─── Shared session-state init ────────────────────────────────────────────────
 def _init_state():
     defaults = {
-        "api"           : None,
-        "feed_token"    : None,
-        "login_err"     : None,
-        "candles"       : {s: pd.DataFrame() for s in config.INSTRUMENTS},
-        "signals"       : {s: {} for s in config.INSTRUMENTS},
-        "last_alert"    : {s: None for s in config.INSTRUMENTS},
-        "trade_counts"  : {s: 0   for s in config.INSTRUMENTS},
-        "bt_results"    : {},
+        "api"          : None,
+        "login_err"    : None,
+        "candles"      : {s: pd.DataFrame() for s in config.INSTRUMENTS},
+        "signals"      : {s: {} for s in config.INSTRUMENTS},
+        "last_alert"   : {s: None for s in config.INSTRUMENTS},
+        "trade_counts" : {s: 0   for s in config.INSTRUMENTS},
+        "bt_results"   : {},
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -84,10 +83,9 @@ def _ensure_api(spinner_text="Connecting to Angel One…"):
     if st.session_state.api is None:
         with st.spinner(spinner_text):
             try:
-                api, _, feed_token = get_session()
-                st.session_state.api        = api
-                st.session_state.feed_token = feed_token
-                st.session_state.login_err  = None
+                api, _, _ = get_session()
+                st.session_state.api       = api
+                st.session_state.login_err = None
             except Exception as exc:
                 st.session_state.login_err = str(exc)
     return st.session_state.api
@@ -128,7 +126,9 @@ with tab_live:
         for sym, cfg in config.INSTRUMENTS.items():
             existing = st.session_state.candles[sym]
             if existing.empty:
-                df = fetch_candles(api, cfg["token"], cfg["exchange"])
+                # Fetch 5 days so indicators (ADX/EMA/RSI need ~26 candles) have
+                # enough warmup data even on first load of the day.
+                df = fetch_candles(api, cfg["token"], cfg["exchange"], days_back=5)
             else:
                 df = refresh_candles(api, existing, cfg["token"], cfg["exchange"])
             st.session_state.candles[sym] = df

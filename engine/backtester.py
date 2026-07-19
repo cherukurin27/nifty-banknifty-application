@@ -1,12 +1,12 @@
 """
 engine/backtester.py — Walk-forward backtest with Supertrend trailing SL.
 
-Entry filters (ALL must be true simultaneously):
+Entry filters (ALL must be true simultaneously) — evaluated via eval_entry_signal():
   1. Supertrend GREEN/RED
-  2. Price > EMA21  (price on correct side of trend)
+  2. Price vs EMA21  (price must be on the correct side of the trend)
   3. RSI in [45,80] BUY / [25,55] SELL
-  4. Price > VWAP
-  5. ADX in [20,60]
+  4. Price vs VWAP   (above for BUY, below for SELL)
+  5. ADX in [20,60]  (trending but not overextended)
   Entry window: 09:40 – 13:30 IST
 
 Exit logic (in priority order):
@@ -16,6 +16,10 @@ Exit logic (in priority order):
   4. RSI MOMENTUM EXIT   — BUY RSI<40; SELL RSI>60 (wide band, avoids noise)
   5. EOD EXIT            — force close 15:15 IST
   6. REVERSE SIGNAL      — 2 consecutive opposite-direction candles (Option B)
+
+Dependencies:
+  engine.signal_engine.eval_entry_signal — shared 5-filter entry logic (single source of truth)
+  engine.utils.strip_tz / force_exit_dt  — shared datetime helpers
 """
 
 from __future__ import annotations
@@ -27,57 +31,15 @@ import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 import config
 from engine.indicators import add_indicators
-from engine.signal_engine import SIGNAL_BUY, SIGNAL_SELL, SIGNAL_NONE
+from engine.signal_engine import SIGNAL_BUY, SIGNAL_SELL, SIGNAL_NONE, eval_entry_signal
+from engine.utils import strip_tz, force_exit_dt
 
 
 # ─── helpers ─────────────────────────────────────────────────────────────────
 
-def _strip_tz(dt) -> datetime.datetime:
-    dt = pd.Timestamp(dt)
-    if dt.tzinfo is not None:
-        dt = dt.tz_convert("Asia/Kolkata").tz_localize(None)
-    return dt.to_pydatetime()
-
 def _in_session(dt) -> bool:
-    t = _strip_tz(dt).time()
+    t = strip_tz(dt).time()
     return datetime.time(9, 30) <= t <= datetime.time(14, 30)
-
-def _force_exit_dt(date: datetime.date) -> datetime.datetime:
-    return datetime.datetime.combine(date, datetime.time(15, 15))
-
-
-# ─── signal evaluation ───────────────────────────────────────────────────────
-
-def _eval_signal(row, close: float) -> str:
-    adx_val  = float(row.get("adx")   or 0)
-    rsi_val  = float(row.get("rsi")   or 0)
-    vwap_val = float(row.get("vwap")  or 0)
-    st_sig   = int(row.get("st_signal") or 0)
-    ema_s    = float(row.get("ema_slow") or 0)
-
-    adx_max = config.ADX_MAX if isinstance(config.ADX_MAX, (int, float)) else 60
-    adx_ok  = (not np.isnan(adx_val)) and config.ADX_THRESHOLD <= adx_val <= adx_max
-
-    buy_all = (adx_ok and st_sig == 1
-               and close > ema_s
-               and config.RSI_BUY_LOW  <= rsi_val <= config.RSI_BUY_HIGH
-               and close > vwap_val)
-
-    sell_all = (adx_ok and st_sig == -1
-                and close < ema_s
-                and config.RSI_SELL_LOW <= rsi_val <= config.RSI_SELL_HIGH
-                and close < vwap_val)
-
-    if buy_all:  return SIGNAL_BUY
-    if sell_all: return SIGNAL_SELL
-    return SIGNAL_NONE
-
-
-# ─── Supertrend trailing SL ───────────────────────────────────────────────────
-
-def _supertrend_sl(row) -> float:
-    """Return the current Supertrend line value as the trailing SL."""
-    return float(row.get("st_value") or 0)
 
 
 # ─── core ────────────────────────────────────────────────────────────────────
@@ -102,7 +64,7 @@ def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.D
     for i in range(warmup, len(df_ind)):
         row   = df_ind.iloc[i]
         cdt   = pd.to_datetime(row["datetime"])
-        cdt_n = _strip_tz(cdt)
+        cdt_n = strip_tz(cdt)
         cdate = cdt_n.date()
         close = float(row["close"])
         high  = float(row["high"])
@@ -120,7 +82,7 @@ def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.D
             pending_rev = None
             prev_date   = cdate
 
-        sig_label = _eval_signal(row, close)
+        sig_label = eval_entry_signal(row)
 
         # ── diagnostics ───────────────────────────────────────────────────────
         adx_val  = float(row.get("adx")      or 0)
@@ -144,7 +106,7 @@ def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.D
 
         # ── outside session ───────────────────────────────────────────────────
         if not _in_session(cdt_n):
-            if open_trade is not None and cdt_n >= _force_exit_dt(cdate):
+            if open_trade is not None and cdt_n >= force_exit_dt(cdate):
                 _close(trades, open_trade, cdt, close, "EOD Exit")
                 open_trade = None; pending_rev = None
             continue
@@ -156,7 +118,7 @@ def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.D
             direction = open_trade["direction"]
 
             # ── 1. Supertrend trailing SL (primary) ───────────────────────────
-            st_trail = _supertrend_sl(row)
+            st_trail = float(row.get("st_value") or 0)
             if st_trail and not np.isnan(st_trail):
                 if direction == SIGNAL_BUY:
                     open_trade["sl"] = max(open_trade["sl"], st_trail)
@@ -201,7 +163,7 @@ def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.D
                 continue
 
             # ── 5. EOD force exit ─────────────────────────────────────────────
-            if cdt_n >= _force_exit_dt(cdate):
+            if cdt_n >= force_exit_dt(cdate):
                 _close(trades, open_trade, cdt, close, "EOD Exit")
                 open_trade = None; pending_rev = None
                 continue
@@ -223,7 +185,7 @@ def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.D
         # NO OPEN TRADE — look for entry
         # ══════════════════════════════════════════════════════════════════════
         else:
-            if cdt_n >= _force_exit_dt(cdate):             continue
+            if cdt_n >= force_exit_dt(cdate):              continue
             if cdt_n.time() > datetime.time(13, 30):       continue
             if cdt_n.time() < datetime.time(9, 40):        continue
 

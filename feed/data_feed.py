@@ -4,6 +4,12 @@ from Angel One SmartAPI for Nifty and Bank Nifty.
 
 Angel One API limit: 5-min candles available for max ~30 calendar days per call.
 For longer periods (up to 90 days) we split into 30-day chunks and stitch.
+
+Key fix: fromdate/todate must carry proper HH:MM times.
+  fromdate = <date> 09:15 (market open)
+  todate   = <date> 15:30, capped at now() for today to avoid future timestamps
+
+Initial fetch uses days_back=5 (not 1) so indicators have ≥26 warm-up candles.
 """
 
 from __future__ import annotations
@@ -24,13 +30,26 @@ _MAX_DAYS_PER_CALL = 30
 
 def _fetch_chunk(api, token: str, exchange: str, interval: str,
                  from_date: datetime.date, to_date: datetime.date) -> pd.DataFrame:
-    """Fetch one chunk of candles between from_date and to_date."""
+    """Fetch one chunk of candles between from_date and to_date.
+
+    Angel One requires HH:MM in fromdate/todate.  We always open at 09:15 and
+    close at 15:30 IST.  For 'today' we cap todate at the current time so the
+    API does not reject a future timestamp.
+    """
+    today_date = datetime.date.today()
+    from_ts = datetime.datetime.combine(from_date, datetime.time(9, 15))
+    if to_date >= today_date:
+        now = datetime.datetime.now()
+        to_ts = min(datetime.datetime.combine(to_date, datetime.time(15, 30)), now)
+    else:
+        to_ts = datetime.datetime.combine(to_date, datetime.time(15, 30))
+
     params = {
         "exchange"    : exchange,
         "symboltoken" : token,
         "interval"    : interval,
-        "fromdate"    : from_date.strftime("%Y-%m-%d %H:%M"),
-        "todate"      : to_date.strftime("%Y-%m-%d %H:%M"),
+        "fromdate"    : from_ts.strftime("%Y-%m-%d %H:%M"),
+        "todate"      : to_ts.strftime("%Y-%m-%d %H:%M"),
     }
 
     resp = api.getCandleData(params)
@@ -81,9 +100,9 @@ def fetch_candles(api, token: str, exchange: str, interval: str = "FIVE_MINUTE",
     DataFrame with columns: datetime, open, high, low, close, volume
     Sorted ascending by datetime, deduplicated.
     """
-    today   = datetime.date.today()
-    end_dt  = today
-    start_dt = today - datetime.timedelta(days=days_back)
+    now      = datetime.datetime.now()
+    end_dt   = now.date()
+    start_dt = end_dt - datetime.timedelta(days=days_back)
 
     chunks = []
     chunk_end = end_dt
