@@ -9,13 +9,18 @@ Entry filters (ALL must be true simultaneously) — evaluated via eval_entry_sig
   5. ADX in [ADX_THRESHOLD, ADX_MAX]  (trending but not overextended)
   Entry window: SESSION_START – NO_NEW_ENTRY_AFTER IST
 
-Exit logic (in priority order):
-  1. SUPERTREND TRAIL SL — BUY: SL = st_value (trails up); SELL: SL = st_value (trails down)
-  2. HARD SL CAP         — NIFTY: fixed 55pts | BANKNIFTY: dynamic 2×ATR(14) from entry
-  3. SL HIT              — candle low/high crosses the active SL
-  4. RSI MOMENTUM EXIT   — BUY RSI<40; SELL RSI>60 (wide band, avoids noise)
-  5. EOD EXIT            — force close 15:15 IST
+Exit logic (per-candle order):
+  1. FREEZE SL           — snapshot sl_frozen at candle open (prevents trail-before-hit bug)
+  2. SL HIT              — candle low/high crosses sl_frozen; exit at sl_frozen (correct fill)
+  3. SUPERTREND TRAIL SL — update SL only when no SL hit (BUY: trails up; SELL: trails down)
+                           This IS the profit protector — only exits when trend reverses
+  4. HARD SL CAP         — NIFTY: fixed 55pts | BANKNIFTY: dynamic 2×ATR(14)
+  5. EOD EXIT            — force close 15:15 IST ± EOD_SLIPPAGE_PTS
   6. REVERSE SIGNAL      — 2 consecutive opposite-direction candles (Option B)
+
+  No profit-lock floor: a fixed floor above entry creates an artificial SL that
+  the Supertrend trail hits within 2–3 candles while the trend is still positive,
+  producing meaningless 8–30pt wins. Let the Supertrend decide.
 
 Extra filters (config-driven):
   SKIP_EXPIRY_DAY — skip all new entries on the symbol's weekly expiry weekday
@@ -35,7 +40,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 import config
 from engine.indicators import add_indicators
 from engine.signal_engine import (SIGNAL_BUY, SIGNAL_SELL, SIGNAL_NONE,
-                                   eval_entry_signal, _bnkn_skip_slot, _rsi_buy_high)
+                                   eval_entry_signal, _bnkn_skip_slot,
+                                   _nifty_buy_skip_slot, _rsi_buy_high)
 from engine.utils import strip_tz, force_exit_dt
 
 
@@ -71,6 +77,11 @@ def _is_expiry_skip(symbol: str, cdate) -> bool:
 def _bnkn_slot_skip(symbol: str, t: datetime.time) -> bool:
     """Thin wrapper — delegates to signal_engine._bnkn_skip_slot for the backtester."""
     return _bnkn_skip_slot(symbol, t)
+
+
+def _nifty_buy_slot_skip(symbol: str, direction: str, t: datetime.time) -> bool:
+    """Thin wrapper — delegates to signal_engine._nifty_buy_skip_slot for the backtester."""
+    return _nifty_buy_skip_slot(symbol, direction, t)
 
 
 def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -120,7 +131,12 @@ def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.D
             pending_rev = None
             prev_date   = cdate
 
-        sig_label = eval_entry_signal(row)
+        # Stamp prev_st_signal onto row dict for eval_entry_signal ST confirm check
+        prev_st_sig = int(df_ind.iloc[i - 1].get("st_signal") or 0)
+        row_with_prev = dict(row)
+        row_with_prev["prev_st_signal"] = prev_st_sig
+
+        sig_label = eval_entry_signal(row_with_prev)
 
         # ── diagnostics ───────────────────────────────────────────────────────
         adx_val  = float(row.get("adx")      or 0)
@@ -154,8 +170,22 @@ def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.D
         # ══════════════════════════════════════════════════════════════════════
         if open_trade is not None:
             direction = open_trade["direction"]
+            entry     = open_trade["entry_price"]
 
-            # ── 1. Supertrend trailing SL (primary) ───────────────────────────
+            # ── 1. Freeze SL at candle open ───────────────────────────────────
+            # Must snapshot BEFORE any trail update so SL-hit uses the SL that
+            # was in force when this candle opened — matches real broker fill.
+            sl_frozen = open_trade["sl"]
+
+            # ── 2. SL Hit (checked against frozen SL) ────────────────────────
+            sl_hit = ((direction == SIGNAL_BUY  and low  <= sl_frozen) or
+                      (direction == SIGNAL_SELL and high >= sl_frozen))
+            if sl_hit:
+                _close(trades, open_trade, cdt, sl_frozen, "SL Hit")
+                open_trade = None; pending_rev = None
+                continue
+
+            # ── 3. Supertrend trailing SL (runs only when no SL hit) ──────────
             st_trail = float(row.get("st_value") or 0)
             if st_trail and not np.isnan(st_trail):
                 if direction == SIGNAL_BUY:
@@ -163,8 +193,7 @@ def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.D
                 else:
                     open_trade["sl"] = min(open_trade["sl"], st_trail)
 
-            # ── 2. Hard SL cap backstop ───────────────────────────────────────
-            entry = open_trade["entry_price"]
+            # ── 4. Hard SL cap backstop ───────────────────────────────────────
             if atr_cap_mult is not None:
                 live_cap = round(atr_val * atr_cap_mult, 2) if atr_val else open_trade["entry_atr"] * atr_cap_mult
             else:
@@ -176,41 +205,23 @@ def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.D
                 hard_sl = round(entry + live_cap, 2)
                 open_trade["sl"] = min(open_trade["sl"], hard_sl)
 
-            sl = open_trade["sl"]
-
-            # ── 3. SL Hit ─────────────────────────────────────────────────────
-            sl_hit = ((direction == SIGNAL_BUY  and low  <= sl) or
-                      (direction == SIGNAL_SELL and high >= sl))
-            if sl_hit:
-                _close(trades, open_trade, cdt, sl, "SL Hit")
-                open_trade = None; pending_rev = None
-                continue
-
-            # ── 4. RSI momentum exit (wide band) ─────────────────────────────
-            rsi_exit = ((direction == SIGNAL_BUY  and rsi_now < config.RSI_EXIT_BUY) or
-                        (direction == SIGNAL_SELL and rsi_now > config.RSI_EXIT_SELL))
-            if rsi_exit:
-                label = (f"RSI Exit (BUY RSI<{config.RSI_EXIT_BUY})"
-                         if direction == SIGNAL_BUY
-                         else f"RSI Exit (SELL RSI>{config.RSI_EXIT_SELL})")
-                _close(trades, open_trade, cdt, close, label)
-                open_trade = None; pending_rev = None
-                continue
-
-            # ── 5. EOD force exit ─────────────────────────────────────────────
+            # ── 5. EOD force exit (± realistic slippage) ─────────────────────
             if cdt_n >= force_exit_dt(cdate):
-                _close(trades, open_trade, cdt, close, "EOD Exit")
+                slip = getattr(config, "EOD_SLIPPAGE_PTS", {}).get(symbol, 0)
+                eod_px = (close - slip) if direction == SIGNAL_BUY else (close + slip)
+                _close(trades, open_trade, cdt, round(eod_px, 2), "EOD Exit")
                 open_trade = None; pending_rev = None
                 continue
 
-            # ── 6. Reverse signal — 2-candle confirmation (Option B) ──────────
+            # ── 7. Reverse signal — 2-candle confirmation (Option B) ──────────
             reverse = SIGNAL_SELL if direction == SIGNAL_BUY else SIGNAL_BUY
             if pending_rev == reverse and sig_label == reverse:
                 _close(trades, open_trade, cdt, close, "Reverse Signal")
                 open_trade = None; pending_rev = None
                 if (cdt_n.time() <= _no_new_entry_time()
                         and not _is_expiry_skip(symbol, cdate)
-                        and not _bnkn_slot_skip(symbol, cdt_n.time())):
+                        and not _bnkn_slot_skip(symbol, cdt_n.time())
+                        and not _nifty_buy_slot_skip(symbol, sig_label, cdt_n.time())):
                     open_trade = _open(symbol, cdate, cdt, close, sig_label,
                                        st_val, atr_val, rsi_now, adx_val, vwap_val,
                                        fixed_cap, atr_cap_mult)
@@ -222,11 +233,12 @@ def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.D
         # NO OPEN TRADE — look for entry
         # ══════════════════════════════════════════════════════════════════════
         else:
-            if cdt_n >= force_exit_dt(cdate):                      continue
-            if cdt_n.time() > _no_new_entry_time():                continue
-            if cdt_n.time() < datetime.time(9, 40):                continue
-            if _is_expiry_skip(symbol, cdate):                     continue
-            if _bnkn_slot_skip(symbol, cdt_n.time()):              continue
+            if cdt_n >= force_exit_dt(cdate):                              continue
+            if cdt_n.time() > _no_new_entry_time():                        continue
+            if cdt_n.time() < datetime.time(9, 40):                        continue
+            if _is_expiry_skip(symbol, cdate):                             continue
+            if _bnkn_slot_skip(symbol, cdt_n.time()):                      continue
+            if _nifty_buy_slot_skip(symbol, sig_label, cdt_n.time()):      continue
 
             if sig_label != SIGNAL_NONE:
                 open_trade  = _open(symbol, cdate, cdt, close, sig_label,
@@ -253,13 +265,18 @@ def _open(symbol, cdate, cdt, close, direction, st_val, atr_val,
     cap = (round(atr_val * atr_cap_mult, 2) if atr_cap_mult is not None and atr_val
            else (fixed_cap or 9999))
     if direction == SIGNAL_BUY:
-        sl_st  = round(st_val, 2) if st_val else round(close - cap, 2)
         sl_cap = round(close - cap, 2)
-        sl     = max(sl_st, sl_cap)
+        # st_val is the Supertrend lower band on a GREEN candle — should be below entry.
+        # Guard: if st_val >= close (can happen on the entry candle when ST hasn't fully
+        # settled), fall back to the hard-cap SL so we never place SL above entry.
+        st_val_safe = round(st_val, 2) if (st_val and st_val < close) else sl_cap
+        sl = max(st_val_safe, sl_cap)   # tighter of the two (both below entry)
     else:
-        sl_st  = round(st_val, 2) if st_val else round(close + cap, 2)
         sl_cap = round(close + cap, 2)
-        sl     = min(sl_st, sl_cap)
+        # st_val is the Supertrend upper band on a RED candle — should be above entry.
+        # Guard: if st_val <= close, fall back to the hard-cap SL.
+        st_val_safe = round(st_val, 2) if (st_val and st_val > close) else sl_cap
+        sl = min(st_val_safe, sl_cap)   # tighter of the two (both above entry)
 
     target = (round(close + atr_val * config.ATR_MULTIPLIER, 2)
               if direction == SIGNAL_BUY

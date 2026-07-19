@@ -208,7 +208,8 @@ class TestEvalEntrySignal:
 
     def _row(self, **kwargs):
         defaults = {
-            "adx": 30.0, "rsi": 60.0, "vwap": 22000.0,
+            # RSI set to 55.0 — inside current band 53–57 for NIFTY BUY
+            "adx": 30.0, "rsi": 55.0, "vwap": 22000.0,
             "st_signal": 1, "ema_slow": 21900.0, "close": 22100.0,
         }
         defaults.update(kwargs)

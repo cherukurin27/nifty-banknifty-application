@@ -70,6 +70,11 @@ def _init_state():
         "last_alert"   : {s: None for s in config.INSTRUMENTS},
         "trade_counts" : {s: 0   for s in config.INSTRUMENTS},
         "bt_results"   : {},
+        # ── open-trade state per symbol ──────────────────────────────────────
+        # Each entry: {"direction": "BUY"|"SELL", "entry_price": float,
+        #              "entry_time": datetime, "sl": float, "entry_atr": float}
+        # None means no open trade.
+        "open_trades"  : {s: None for s in config.INSTRUMENTS},
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -118,27 +123,148 @@ with tab_live:
     )
     st.markdown("---")
 
-    # ── refresh data ──────────────────────────────────────────────────────────
+    # ── refresh data & manage open trades ────────────────────────────────────
     def _refresh_live():
         api = _ensure_api()
         if api is None:
             return
-        for sym, cfg in config.INSTRUMENTS.items():
+        import numpy as np
+        from engine.indicators import add_indicators
+        from engine.utils import strip_tz, force_exit_dt
+        from engine.signal_engine import SIGNAL_BUY, SIGNAL_SELL, SIGNAL_NONE
+
+        for sym, cfg_inst in config.INSTRUMENTS.items():
             existing = st.session_state.candles[sym]
             if existing.empty:
-                # Fetch 5 days so indicators (ADX/EMA/RSI need ~26 candles) have
-                # enough warmup data even on first load of the day.
-                df = fetch_candles(api, cfg["token"], cfg["exchange"], days_back=5)
+                df = fetch_candles(api, cfg_inst["token"], cfg_inst["exchange"], days_back=5)
             else:
-                df = refresh_candles(api, existing, cfg["token"], cfg["exchange"])
+                df = refresh_candles(api, existing, cfg_inst["token"], cfg_inst["exchange"])
             st.session_state.candles[sym] = df
-            if not df.empty:
-                sig = evaluate_signal(df, symbol=sym)
-                st.session_state.signals[sym] = sig
+            if df.empty:
+                continue
+
+            sig      = evaluate_signal(df, symbol=sym)
+            st.session_state.signals[sym] = sig
+            ot       = st.session_state.open_trades[sym]   # may be None
+
+            # ── latest candle values ─────────────────────────────────────────
+            df_ind   = add_indicators(df.copy())
+            df_ind["symbol"] = sym
+            row      = df_ind.iloc[-1]
+            close    = float(row["close"])
+            high     = float(row["high"])
+            low      = float(row["low"])
+            atr_val  = float(row.get("atr") or 0)
+            st_val   = float(row.get("st_value") or 0)
+            now_dt   = strip_tz(pd.to_datetime(row["datetime"]))
+            now_time = now_dt.time()
+            now_date = now_dt.date()
+
+            # SL cap helpers (same logic as backtester)
+            fixed_cap    = config.SL_CAP_PTS.get(sym)
+            atr_cap_mult = (None if fixed_cap is not None
+                            else getattr(config, "ATR_SL_MULT_BANKNIFTY", 2.0)
+                            if sym == "BANKNIFTY"
+                            else getattr(config, "ATR_SL_MULT_STOCKS", {}).get(sym, 2.0))
+
+            # ── A. Manage existing open trade ────────────────────────────────
+            if ot is not None:
+                direction = ot["direction"]
+                entry     = ot["entry_price"]
+                sl_frozen = ot["sl"]   # SL active at this candle's open
+
+                exited      = False
+                exit_reason = None
+                exit_price  = None
+
+                # 1. Hard SL hit
+                sl_hit = ((direction == SIGNAL_BUY  and low  <= sl_frozen) or
+                          (direction == SIGNAL_SELL and high >= sl_frozen))
+                if sl_hit:
+                    exit_reason = "SL Hit"
+                    exit_price  = sl_frozen
+                    exited      = True
+
+                # 2. EOD force exit at 15:15 IST
+                if not exited and now_dt >= force_exit_dt(now_date):
+                    slip = getattr(config, "EOD_SLIPPAGE_PTS", {}).get(sym, 0)
+                    exit_price  = round((close - slip) if direction == SIGNAL_BUY else (close + slip), 2)
+                    exit_reason = "EOD Exit"
+                    exited      = True
+
+                # 3. Opposite signal confirmed (1-candle — live is single candle resolution)
+                if not exited:
+                    reverse = SIGNAL_SELL if direction == SIGNAL_BUY else SIGNAL_BUY
+                    if sig.get("signal") == reverse:
+                        exit_price  = close
+                        exit_reason = "Reverse Signal"
+                        exited      = True
+
+                if exited:
+                    pts = round((exit_price - entry) if direction == SIGNAL_BUY
+                                else (entry - exit_price), 2)
+                    send_signal_alert(sym, {
+                        "signal"    : f"EXIT ({direction})",
+                        "entry"     : entry,
+                        "sl"        : sl_frozen,
+                        "target"    : ot.get("target"),
+                        "exit_price": exit_price,
+                        "points"    : pts,
+                        "reason"    : exit_reason,
+                        "candle_time": now_dt,
+                    })
+                    st.session_state.open_trades[sym] = None
+                    ot = None
+                else:
+                    # 4. Trail the Supertrend SL
+                    if st_val and not np.isnan(st_val):
+                        if direction == SIGNAL_BUY:
+                            ot["sl"] = round(max(ot["sl"], st_val), 2)
+                        else:
+                            ot["sl"] = round(min(ot["sl"], st_val), 2)
+
+                    # 5. Apply hard SL cap
+                    if atr_cap_mult is not None:
+                        live_cap = round(atr_val * atr_cap_mult, 2) if atr_val else ot["entry_atr"] * atr_cap_mult
+                    else:
+                        live_cap = fixed_cap
+                    if direction == SIGNAL_BUY:
+                        ot["sl"] = round(max(ot["sl"], entry - live_cap), 2)
+                    else:
+                        ot["sl"] = round(min(ot["sl"], entry + live_cap), 2)
+
+                    st.session_state.open_trades[sym] = ot
+
+            # ── B. No open trade — check for new entry signal ────────────────
+            if (ot is None
+                    and sig.get("signal") not in (None, SIGNAL_NONE)
+                    and now_time < datetime.time(13, 0)
+                    and now_time >= datetime.time(9, 40)
+                    and st.session_state.trade_counts[sym] < config.MAX_TRADES_PER_SYMBOL):
+
+                direction    = sig["signal"]
+                entry_price  = sig["entry"]
+                sl_initial   = sig["sl"]
+                cap          = (fixed_cap if fixed_cap is not None
+                                else round(atr_val * atr_cap_mult, 2) if atr_cap_mult and atr_val else 9999)
+                if direction == SIGNAL_BUY:
+                    sl_cap = round(entry_price - cap, 2)
+                    sl     = max(sl_initial, sl_cap) if sl_initial else sl_cap
+                else:
+                    sl_cap = round(entry_price + cap, 2)
+                    sl     = min(sl_initial, sl_cap) if sl_initial else sl_cap
+
                 ct = sig.get("candle_time")
-                if (sig["signal"] != "NONE"
-                        and ct != st.session_state.last_alert[sym]
-                        and st.session_state.trade_counts[sym] < config.MAX_TRADES_PER_SYMBOL):
+                if ct != st.session_state.last_alert[sym]:
+                    new_trade = {
+                        "direction"  : direction,
+                        "entry_price": entry_price,
+                        "entry_time" : now_dt,
+                        "sl"         : round(sl, 2),
+                        "target"     : sig.get("target"),
+                        "entry_atr"  : round(atr_val, 2),
+                    }
+                    st.session_state.open_trades[sym] = new_trade
                     send_signal_alert(sym, sig)
                     st.session_state.last_alert[sym] = ct
                     st.session_state.trade_counts[sym] += 1
@@ -154,10 +280,8 @@ with tab_live:
 
     # ── signal cards ─────────────────────────────────────────────────────────
     def _signal_card(sym: str, sig: dict):
+        ot        = st.session_state.open_trades.get(sym)
         direction = sig.get("signal", "NONE")
-        entry     = sig.get("entry")
-        sl        = sig.get("sl")
-        target    = sig.get("target")
         rsi_v     = sig.get("rsi")
         adx_v     = sig.get("adx")
         vwap_v    = sig.get("vwap")
@@ -166,11 +290,61 @@ with tab_live:
         ema_s     = sig.get("ema_slow")
         ct        = sig.get("candle_time")
         reason    = sig.get("reason", "—")
+        left      = config.MAX_TRADES_PER_SYMBOL - st.session_state.trade_counts.get(sym, 0)
+
+        # ── IN TRADE — show open position panel ──────────────────────────────
+        if ot is not None:
+            ot_dir    = ot["direction"]
+            ot_entry  = ot["entry_price"]
+            ot_sl     = ot["sl"]
+            ot_target = ot.get("target", "—")
+            ot_time   = ot.get("entry_time")
+
+            # Estimate unrealised P&L from latest signal price
+            live_px    = sig.get("entry") or ot_entry
+            unrealised = round((live_px - ot_entry) if ot_dir == SIGNAL_BUY
+                               else (ot_entry - live_px), 2)
+            unr_clr    = "#22c55e" if unrealised >= 0 else "#ef4444"
+            css        = "signal-buy" if ot_dir == SIGNAL_BUY else "signal-sell"
+            clr        = "buy-color"  if ot_dir == SIGNAL_BUY else "sell-color"
+
+            st.markdown(f"""
+            <div class="{css}">
+              <div class="big-label">{sym} — IN TRADE</div>
+              <div class="big-value {clr}">{'🟢 LONG (BUY)' if ot_dir == SIGNAL_BUY else '🔴 SHORT (SELL)'}</div>
+              <div class="metric-row">
+                <div class="metric-box"><div class="mbox-label">Entry</div><div class="mbox-val">{ot_entry}</div></div>
+                <div class="metric-box"><div class="mbox-label">🔄 Trailing SL</div><div class="mbox-val" style="color:#f59e0b">{ot_sl}</div></div>
+                <div class="metric-box"><div class="mbox-label">Target</div><div class="mbox-val">{ot_target}</div></div>
+                <div class="metric-box"><div class="mbox-label">Live Price</div><div class="mbox-val">{live_px}</div></div>
+                <div class="metric-box"><div class="mbox-label">Unrealised</div><div class="mbox-val" style="color:{unr_clr}">{unrealised:+.1f}</div></div>
+                <div class="metric-box"><div class="mbox-label">RSI</div><div class="mbox-val">{rsi_v or '—'}</div></div>
+                <div class="metric-box"><div class="mbox-label">ADX</div><div class="mbox-val">{adx_v or '—'}</div></div>
+                <div class="metric-box"><div class="mbox-label">Supertrend</div><div class="mbox-val">{st_v or '—'}</div></div>
+              </div>
+              <div style="margin-top:8px;font-size:12px;color:#8b949e;">
+                Entry: {str(ot_time)[11:16] if ot_time else '—'}
+                &nbsp;|&nbsp; Holding until: SL hit, reverse signal, or 15:15 IST
+              </div>
+              <div class="ts">Candle: {ct or 'N/A'} &nbsp;|&nbsp; Refreshed: {datetime.datetime.now().strftime('%H:%M:%S')}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Manual exit button
+            if st.button(f"🚪 Exit {sym} trade now (market)", key=f"exit_{sym}"):
+                st.session_state.open_trades[sym] = None
+                st.success(f"✅ {sym} trade manually exited at market.")
+                st.rerun()
+            return
+
+        # ── NO OPEN TRADE — show entry signal / waiting ───────────────────────
+        entry  = sig.get("entry")
+        sl     = sig.get("sl")
+        target = sig.get("target")
 
         css  = "signal-buy" if direction == SIGNAL_BUY else ("signal-sell" if direction == SIGNAL_SELL else "signal-none")
         clr  = "buy-color"  if direction == SIGNAL_BUY else ("sell-color"  if direction == SIGNAL_SELL else "none-color")
-        lbl  = "🟢 BUY"     if direction == SIGNAL_BUY else ("🔴 SELL"     if direction == SIGNAL_SELL else "⚪ WAITING")
-        left = config.MAX_TRADES_PER_SYMBOL - st.session_state.trade_counts.get(sym, 0)
+        lbl  = "🟢 BUY SIGNAL" if direction == SIGNAL_BUY else ("🔴 SELL SIGNAL" if direction == SIGNAL_SELL else "⚪ WAITING FOR SIGNAL")
 
         vwap_ok_buy  = entry and vwap_v and entry > vwap_v
         vwap_ok_sell = entry and vwap_v and entry < vwap_v
@@ -182,7 +356,7 @@ with tab_live:
           <div class="big-value {clr}">{lbl}</div>
           <div class="metric-row">
             <div class="metric-box"><div class="mbox-label">Entry</div><div class="mbox-val">{entry or '—'}</div></div>
-            <div class="metric-box"><div class="mbox-label">Stop Loss</div><div class="mbox-val">{sl or '—'}</div></div>
+            <div class="metric-box"><div class="mbox-label">Initial SL</div><div class="mbox-val">{sl or '—'}</div></div>
             <div class="metric-box"><div class="mbox-label">Target</div><div class="mbox-val">{target or '—'}</div></div>
             <div class="metric-box"><div class="mbox-label">RSI</div><div class="mbox-val">{rsi_v or '—'}</div></div>
             <div class="metric-box"><div class="mbox-label">ADX</div><div class="mbox-val">{adx_v or '—'}</div></div>

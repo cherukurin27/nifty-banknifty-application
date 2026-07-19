@@ -70,6 +70,41 @@ def _monthly(trades_full):
     return result
 
 
+def _exit_time_analysis(trades_full):
+    """
+    Bucket exits into 30-min time slots.
+    Returns list of dicts: {slot, buy_win, buy_loss, sell_win, sell_loss, net_pts}
+    Only looks at the exit time (HH:MM) of each trade.
+    """
+    import pandas as pd
+
+    result = {}
+    for _, row in trades_full.iterrows():
+        et = row.get("exit_time", "")
+        if not et:
+            continue
+        # exit_time may be a string like "2026-04-21 09:45:00" or a Timestamp
+        try:
+            t = pd.to_datetime(str(et))
+            # round down to 30-min bucket
+            bucket_min = (t.minute // 30) * 30
+            slot = f"{t.hour:02d}:{bucket_min:02d}"
+        except Exception:
+            continue
+        if slot not in result:
+            result[slot] = {"buy_win": 0, "buy_loss": 0,
+                            "sell_win": 0, "sell_loss": 0, "net_pts": 0.0}
+        d   = row.get("direction", "")
+        res = row.get("result", "")
+        pts = float(row.get("points", 0) or 0)
+        result[slot]["net_pts"] = round(result[slot]["net_pts"] + pts, 2)
+        if d == "BUY"  and res == "WIN":   result[slot]["buy_win"]  += 1
+        elif d == "BUY"  and res == "LOSS": result[slot]["buy_loss"] += 1
+        elif d == "SELL" and res == "WIN":  result[slot]["sell_win"] += 1
+        elif d == "SELL" and res == "LOSS": result[slot]["sell_loss"] += 1
+    return result
+
+
 # ─── HTML builder ─────────────────────────────────────────────────────────────
 
 def _html(data: dict) -> str:
@@ -162,6 +197,33 @@ def _html(data: dict) -> str:
         rows = "".join(f"<tr><td>{k}</td><td>{v}</td></tr>" for k, v in sorted(be.items(), key=lambda x: -x[1]))
         return f"<table><thead><tr><th>Exit Reason</th><th>Count</th></tr></thead><tbody>{rows}</tbody></table>"
 
+    # ── exit time-of-day analysis table ──────────────────────────────────────
+    def exit_time_table(sym):
+        eta = data["results"][sym].get("exit_time_analysis", {})
+        if not eta:
+            return "<p>No exit time data.</p>"
+        rows = ""
+        for slot in sorted(eta.keys()):
+            s       = eta[slot]
+            total   = s["buy_win"] + s["buy_loss"] + s["sell_win"] + s["sell_loss"]
+            net_pts = s["net_pts"]
+            color   = "pos" if net_pts >= 0 else "neg"
+            rows += (f"<tr>"
+                     f"<td>{slot}</td>"
+                     f"<td>{total}</td>"
+                     f"<td class='pos'>{s['buy_win']}</td>"
+                     f"<td class='neg'>{s['buy_loss']}</td>"
+                     f"<td class='pos'>{s['sell_win']}</td>"
+                     f"<td class='neg'>{s['sell_loss']}</td>"
+                     f"<td class='{color}'>{net_pts:+.1f}</td>"
+                     f"</tr>")
+        return (f"<table><thead><tr>"
+                f"<th>Exit Time</th><th>Total</th>"
+                f"<th>BUY W</th><th>BUY L</th>"
+                f"<th>SELL W</th><th>SELL L</th>"
+                f"<th>Net Pts</th>"
+                f"</tr></thead><tbody>{rows}</tbody></table>")
+
     # ── equity curve (SVG sparkline) ──────────────────────────────────────────
     def equity_svg(sym):
         trades = data["results"][sym].get("all_trades", [])
@@ -227,6 +289,7 @@ def _html(data: dict) -> str:
           <h3>BUY vs SELL (90d)</h3>{direction_table(sym)}
           <h3>Monthly Breakdown</h3>{monthly_table(sym)}
           <h3>Exit Reasons (90d)</h3>{exit_table(sym)}
+          <h3>Exit Time-of-Day Analysis</h3>{exit_time_table(sym)}
           <h3>Equity Curve (all trades)</h3>{equity_svg(sym)}
           <h3>All Trades</h3>{trades_table(sym)}
         </section>"""
@@ -328,7 +391,9 @@ def main():
                             "by_exit": {}, "monthly": {}, "all_trades": []}
             continue
 
-        trades_full["date"] = trades_full["date"].astype(str)
+        trades_full["date"]       = trades_full["date"].astype(str)
+        trades_full["entry_time"] = trades_full["entry_time"].astype(str)
+        trades_full["exit_time"]  = trades_full["exit_time"].astype(str)
 
         ps = {str(p): _stats_for_period(trades_full, p) for p in PERIODS}
         s90 = ps.get("90", {})
@@ -340,36 +405,39 @@ def main():
                   f"MDD {s90.get('max_drawdown',0):.1f}")
 
         results[sym] = {
-            "period_stats": ps,
-            "by_direction": _by_direction(trades_full),
-            "by_exit"     : trades_full["exit_reason"].value_counts().to_dict(),
-            "monthly"     : _monthly(trades_full),
-            "all_trades"  : json.loads(trades_full.to_json(orient="records", default_handler=str)),
+            "period_stats"     : ps,
+            "by_direction"     : _by_direction(trades_full),
+            "by_exit"          : trades_full["exit_reason"].value_counts().to_dict(),
+            "monthly"          : _monthly(trades_full),
+            "exit_time_analysis": _exit_time_analysis(trades_full),
+            "all_trades"       : json.loads(trades_full.to_json(orient="records", default_handler=str)),
         }
         print()
 
     data = {
         "generated" : datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
         "config"    : {
-            "RSI_BUY_LOW"          : config.RSI_BUY_LOW,
-            "RSI_BUY_HIGH"         : config.RSI_BUY_HIGH,
-            "RSI_BUY_HIGH_BNKN"    : config.RSI_BUY_HIGH_BANKNIFTY,
-            "RSI_SELL_LOW"         : config.RSI_SELL_LOW,
-            "RSI_SELL_HIGH"        : config.RSI_SELL_HIGH,
-            "ADX_THRESHOLD"        : config.ADX_THRESHOLD,
-            "ADX_MAX"              : config.ADX_MAX,
-            "ST_PERIOD"            : config.ST_PERIOD,
-            "ST_MULTIPLIER"        : config.ST_MULTIPLIER,
-            "NO_NEW_ENTRY_AFTER"   : config.NO_NEW_ENTRY_AFTER,
-            "SESSION_START"        : config.SESSION_START,
-            "SESSION_END"          : config.SESSION_END,
-            "FORCE_EXIT"           : config.FORCE_EXIT,
-            "MAX_TRADES_PER_SYMBOL": config.MAX_TRADES_PER_SYMBOL,
-            "SL_CAP_NIFTY_PTS"     : config.SL_CAP_PTS.get("NIFTY"),
-            "ATR_SL_MULT_BANKNIFTY": config.ATR_SL_MULT_BANKNIFTY,
-            "BNKN_DEAD_ZONE"       : f"{config.BNKN_SKIP_SLOT_START}-{config.BNKN_SKIP_SLOT_END}",
-            "SKIP_EXPIRY_NIFTY"    : "Thursday",
-            "SKIP_EXPIRY_BANKNIFTY": "None",
+            "RSI_BUY_LOW"              : config.RSI_BUY_LOW,
+            "RSI_BUY_HIGH"             : config.RSI_BUY_HIGH,
+            "RSI_BUY_HIGH_BNKN"        : config.RSI_BUY_HIGH_BANKNIFTY,
+            "RSI_SELL_LOW"             : config.RSI_SELL_LOW,
+            "RSI_SELL_HIGH"            : config.RSI_SELL_HIGH,
+            "ADX_THRESHOLD"            : config.ADX_THRESHOLD,
+            "ADX_MAX"                  : config.ADX_MAX,
+            "ST_PERIOD"                : config.ST_PERIOD,
+            "ST_MULTIPLIER"            : config.ST_MULTIPLIER,
+            "NO_NEW_ENTRY_AFTER"       : config.NO_NEW_ENTRY_AFTER,
+            "SESSION_START"            : config.SESSION_START,
+            "SESSION_END"              : config.SESSION_END,
+            "FORCE_EXIT"               : config.FORCE_EXIT,
+            "MAX_TRADES_PER_SYMBOL"    : config.MAX_TRADES_PER_SYMBOL,
+            "SL_CAP_NIFTY_PTS"         : config.SL_CAP_PTS.get("NIFTY"),
+            "ATR_SL_MULT_BANKNIFTY"    : config.ATR_SL_MULT_BANKNIFTY,
+            "BNKN_DEAD_ZONE"           : f"{config.BNKN_SKIP_SLOT_START}-{config.BNKN_SKIP_SLOT_END}",
+            "SKIP_EXPIRY_NIFTY"        : "Thursday",
+            "SKIP_EXPIRY_BANKNIFTY"    : "None",
+            "EOD_SLIPPAGE_NIFTY"       : getattr(config, "EOD_SLIPPAGE_PTS", {}).get("NIFTY", 0),
+            "EOD_SLIPPAGE_BNKN"        : getattr(config, "EOD_SLIPPAGE_PTS", {}).get("BANKNIFTY", 0),
         },
         "data_range": data_range,
         "results"   : results,

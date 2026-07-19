@@ -1,6 +1,12 @@
 """
 engine/indicators.py — All technical indicator calculations.
 Supertrend, EMA, RSI, VWAP, ATR, ADX — computed on a OHLCV DataFrame.
+
+Extended indicators (for data-driven strategy discovery):
+  ema9, ema20, ema50       — fast/mid/slow EMA triple
+  prev_day_high/low        — previous calendar day's H/L for breakout reference
+  first15_high/low         — first 15-minute candle range (09:15–09:30 IST)
+  atr_pct                  — ATR as % of close (normalised volatility)
 """
 
 from __future__ import annotations
@@ -156,12 +162,91 @@ def adx(df: pd.DataFrame, period: int = 14) -> pd.Series:
     return dx.ewm(alpha=1 / period, adjust=False).mean()
 
 
+# ─── Extended indicators (data-driven discovery) ─────────────────────────────
+
+def ema_triple(df: pd.DataFrame) -> pd.DataFrame:
+    """Add ema9, ema20, ema50 — the standard trend-alignment triple."""
+    df["ema9"]  = ema(df["close"], 9)
+    df["ema20"] = ema(df["close"], 20)
+    df["ema50"] = ema(df["close"], 50)
+    return df
+
+
+def prev_day_levels(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Add prev_day_high and prev_day_low — the prior calendar day's H/L.
+    Uses the datetime column to group by date; forward-fills so every intraday
+    candle carries the *previous* day's levels.
+    Returns NaN for the first trading day in the dataset.
+    """
+    dt_col = pd.to_datetime(df["datetime"])
+    if dt_col.dt.tz is not None:
+        dt_col = dt_col.dt.tz_convert("Asia/Kolkata").dt.tz_localize(None)
+    date_key = dt_col.dt.date
+
+    daily_high = df.groupby(date_key)["high"].max()
+    daily_low  = df.groupby(date_key)["low"].min()
+
+    # Map each candle's date to previous day's H/L
+    dates       = date_key.values
+    unique_days = sorted(daily_high.index)
+    day_to_prev = {d: unique_days[i - 1] for i, d in enumerate(unique_days) if i > 0}
+
+    df["prev_day_high"] = pd.Series(dates).map(
+        lambda d: daily_high[day_to_prev[d]] if d in day_to_prev else np.nan
+    ).values
+    df["prev_day_low"] = pd.Series(dates).map(
+        lambda d: daily_low[day_to_prev[d]] if d in day_to_prev else np.nan
+    ).values
+    return df
+
+
+def first_15min_range(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Add first15_high and first15_low — the high and low of the first 15 minutes
+    (09:15–09:30 IST) for each trading day.  All candles for that day carry the
+    same value so breakout comparisons are straightforward.
+    Returns NaN if a day has no candles in the 09:15–09:29 window.
+    """
+    dt_col = pd.to_datetime(df["datetime"])
+    if dt_col.dt.tz is not None:
+        dt_col = dt_col.dt.tz_convert("Asia/Kolkata").dt.tz_localize(None)
+
+    date_key = dt_col.dt.date
+    time_col = dt_col.dt.time
+
+    mask_15 = (time_col >= pd.Timestamp("09:15").time()) & (time_col < pd.Timestamp("09:30").time())
+
+    f15_high = df[mask_15].groupby(date_key[mask_15])["high"].max()
+    f15_low  = df[mask_15].groupby(date_key[mask_15])["low"].min()
+
+    df["first15_high"] = pd.Series(date_key.values).map(
+        lambda d: f15_high.get(d, np.nan)
+    ).values
+    df["first15_low"] = pd.Series(date_key.values).map(
+        lambda d: f15_low.get(d, np.nan)
+    ).values
+    return df
+
+
+def atr_pct(df: pd.DataFrame, period: int = 14) -> pd.Series:
+    """ATR as % of close — normalised volatility, useful for regime detection."""
+    return (atr(df, period) / df["close"] * 100).round(4)
+
+
 # ─── Master: add all indicators to a DataFrame ────────────────────────────────
 
-def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
+def add_indicators(df: pd.DataFrame, extended: bool = False) -> pd.DataFrame:
     """
     Takes a raw OHLCV DataFrame and returns it enriched with all indicators.
     The input df must have a clean 0-based or consistent integer index.
+
+    Parameters
+    ----------
+    extended : bool
+        If True, also compute the extended discovery indicators:
+        ema9/20/50, prev_day_high/low, first15_high/low, atr_pct.
+        Default False — keeps the live signal path lean.
     """
     if len(df) < max(config.EMA_SLOW, config.RSI_PERIOD, config.ST_PERIOD) + 5:
         return df  # not enough data yet
@@ -176,4 +261,11 @@ def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
     df["vwap"]     = vwap(df)          # called after supertrend; uses transform → index-safe
     df["atr"]      = atr(df, config.ATR_PERIOD)
     df["adx"]      = adx(df, config.ADX_PERIOD)
+
+    if extended:
+        df = ema_triple(df)
+        df = prev_day_levels(df)
+        df = first_15min_range(df)
+        df["atr_pct"] = atr_pct(df, config.ATR_PERIOD)
+
     return df

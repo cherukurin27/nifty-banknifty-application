@@ -72,8 +72,8 @@ def _no_new_entry_time() -> datetime.time:
 
 def _bnkn_skip_slot(symbol: str, t: datetime.time) -> bool:
     """
-    Returns True if this candle falls inside the BankNifty dead zone (10:00–10:30).
-    90-day data: 14 trades in that slot, WR=28.6%, net=−856 pts.
+    Returns True if this candle falls inside the BankNifty dead zone (10:00–11:30).
+    90-day data: 16 trades in that slot, 1W/15L, net=−1,986 pts.
     Only applies to BANKNIFTY; has no effect on any other symbol.
     Reads config.BNKN_SKIP_SLOT_START / BNKN_SKIP_SLOT_END.
     """
@@ -88,9 +88,27 @@ def _bnkn_skip_slot(symbol: str, t: datetime.time) -> bool:
     return datetime.time(h1, m1) <= t < datetime.time(h2, m2)
 
 
+def _nifty_buy_skip_slot(symbol: str, direction: str, t: datetime.time) -> bool:
+    """
+    Returns True if this is a NIFTY BUY entry in the lunch-hour dead zone (11:30–12:30).
+    90-day data: 0 BUY wins in 4 trades, net=−141 pts.
+    Only blocks NIFTY BUY; NIFTY SELL and all other symbols are unaffected.
+    Reads config.NIFTY_BUY_SKIP_START / NIFTY_BUY_SKIP_END.
+    """
+    if symbol != "NIFTY" or direction != "BUY":
+        return False
+    start_str = getattr(config, "NIFTY_BUY_SKIP_START", None)
+    end_str   = getattr(config, "NIFTY_BUY_SKIP_END",   None)
+    if start_str is None or end_str is None:
+        return False
+    h1, m1 = map(int, start_str.split(":"))
+    h2, m2 = map(int, end_str.split(":"))
+    return datetime.time(h1, m1) <= t < datetime.time(h2, m2)
+
+
 def _rsi_buy_high(symbol: str) -> float:
     """Return the RSI BUY upper bound for this symbol.
-    BankNifty uses RSI_BUY_HIGH_BANKNIFTY (60); all others use RSI_BUY_HIGH (65).
+    BankNifty uses RSI_BUY_HIGH_BANKNIFTY (60); NIFTY uses RSI_BUY_HIGH (57).
     """
     if symbol == "BANKNIFTY":
         return float(getattr(config, "RSI_BUY_HIGH_BANKNIFTY", config.RSI_BUY_HIGH))
@@ -128,6 +146,11 @@ def evaluate_signal(df: pd.DataFrame, symbol: str = "") -> dict:
         return _no_signal("Insufficient data")
 
     row = df.iloc[-1]   # latest completed candle
+    # Stamp prev_st_signal for the ST confirmation check in eval_entry_signal
+    prev_row    = df.iloc[-2]
+    row_dict    = dict(row)
+    row_dict["prev_st_signal"] = int(prev_row.get("st_signal") or 0)
+    row = row_dict   # type: ignore[assignment]  — used as dict from here on
 
     # ── Session filter ──────────────────────────────────────────────────────
     if not _in_session(pd.to_datetime(row["datetime"])):
@@ -146,11 +169,21 @@ def evaluate_signal(df: pd.DataFrame, symbol: str = "") -> dict:
         day_name = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][skip_day]
         return _no_signal(f"Expiry day skip ({day_name}) for {symbol}", row)
 
-    # ── BankNifty dead zone 10:00–10:30 ────────────────────────────────────
+    # ── BankNifty dead zone 10:00–11:30 ────────────────────────────────────
     if _bnkn_skip_slot(symbol, candle_ts.time()):
         return _no_signal(
             f"BNKN dead zone {config.BNKN_SKIP_SLOT_START}–{config.BNKN_SKIP_SLOT_END} "
-            f"(WR=28.6%, net=−856 pts over 90d)", row)
+            f"(1W/15L, net=−1,986 pts over 90d)", row)
+
+    # ── NIFTY BUY lunch-hour dead zone 11:30–12:30 ─────────────────────────
+    # Pre-check: only skip if conditions look like BUY (Supertrend GREEN)
+    # Full directional check happens below; this guards the time window early.
+    _row_st = row.get("st_signal", 0)
+    if _nifty_buy_skip_slot(symbol, "BUY" if int(_row_st or 0) == 1 else "SELL",
+                            candle_ts.time()):
+        return _no_signal(
+            f"NIFTY BUY dead zone {config.NIFTY_BUY_SKIP_START}–{config.NIFTY_BUY_SKIP_END} "
+            f"(0W/4L, net=−141 pts over 90d)", row)
 
     # ── ADX filter ─────────────────────────────────────────────────────────
     adx_val = row.get("adx", 0)
@@ -164,19 +197,33 @@ def evaluate_signal(df: pd.DataFrame, symbol: str = "") -> dict:
     if candle_ts.time() < datetime.time(9, 40):
         return _no_signal("Opening noise — before 09:40", row)
 
-    close    = row["close"]
-    st_sig   = row["st_signal"]
-    st_val   = row["st_value"]
-    ema_f    = row["ema_fast"]
-    ema_s    = row["ema_slow"]
-    rsi_val  = row["rsi"]
-    vwap_val = row["vwap"]
-    atr_val  = row["atr"]
+    close       = row["close"]
+    st_sig      = row["st_signal"]
+    st_val      = row["st_value"]
+    ema_f       = row["ema_fast"]
+    ema_s       = row["ema_slow"]
+    rsi_val     = row["rsi"]
+    vwap_val    = row["vwap"]
+    atr_val     = row["atr"]
+    prev_st_sig = row.get("prev_st_signal")
+
+    # ── ST confirmation (reuse same logic as eval_entry_signal) ────────────
+    confirm = int(getattr(config, "ST_CONFIRM_CANDLES", 1))
+    if confirm >= 2 and prev_st_sig is not None:
+        st_buy_ok  = (st_sig == 1  and int(prev_st_sig) == 1)
+        st_sell_ok = (st_sig == -1 and int(prev_st_sig) == -1)
+        st_buy_lbl  = f"ST GREEN ×{confirm} candles"
+        st_sell_lbl = f"ST RED ×{confirm} candles"
+    else:
+        st_buy_ok  = (st_sig == 1)
+        st_sell_ok = (st_sig == -1)
+        st_buy_lbl  = "Supertrend GREEN"
+        st_sell_lbl = "Supertrend RED"
 
     # ── BUY conditions ──────────────────────────────────────────────────────
     rsi_hi = _rsi_buy_high(symbol)
     buy_conditions = {
-        "Supertrend GREEN"              : st_sig == 1,
+        st_buy_lbl                      : st_buy_ok,
         "Price > EMA21"                 : close > ema_s,
         f"RSI {config.RSI_BUY_LOW}-{rsi_hi:.0f}": config.RSI_BUY_LOW <= rsi_val <= rsi_hi,
         "Price above VWAP"              : close > vwap_val,
@@ -184,7 +231,7 @@ def evaluate_signal(df: pd.DataFrame, symbol: str = "") -> dict:
 
     # ── SELL conditions ─────────────────────────────────────────────────────
     sell_conditions = {
-        "Supertrend RED"    : st_sig == -1,
+        st_sell_lbl         : st_sell_ok,
         "Price < EMA21"     : close < ema_s,
         f"RSI {config.RSI_SELL_LOW}-{config.RSI_SELL_HIGH}": config.RSI_SELL_LOW <= rsi_val <= config.RSI_SELL_HIGH,
         "Price below VWAP"  : close < vwap_val,
@@ -251,26 +298,45 @@ def eval_entry_signal(row) -> str:
     row : dict-like (DataFrame row) containing indicator columns from
           engine.indicators.add_indicators():
           adx, rsi, vwap, st_signal, ema_slow, close.
+
+          Optional key added by the backtester / evaluate_signal:
+          prev_st_signal : int — st_signal of the previous completed candle.
+          Used for ST_CONFIRM_CANDLES check (default: 2).
+          If absent, confirmation check is skipped (safe fallback for tests).
     """
     import numpy as np
-    symbol   = str(row.get("symbol") or "")
-    adx_val  = float(row.get("adx")      or 0)
-    rsi_val  = float(row.get("rsi")      or 0)
-    vwap_val = float(row.get("vwap")     or 0)
-    st_sig   = int(row.get("st_signal")  or 0)
-    ema_s    = float(row.get("ema_slow") or 0)
-    close    = float(row.get("close")    or 0)
+    symbol      = str(row.get("symbol") or "")
+    adx_val     = float(row.get("adx")      or 0)
+    rsi_val     = float(row.get("rsi")      or 0)
+    vwap_val    = float(row.get("vwap")     or 0)
+    st_sig      = int(row.get("st_signal")  or 0)
+    ema_s       = float(row.get("ema_slow") or 0)
+    close       = float(row.get("close")    or 0)
+    prev_st_sig = row.get("prev_st_signal")   # None if not supplied
 
     adx_max    = config.ADX_MAX if isinstance(config.ADX_MAX, (int, float)) else 60
     adx_ok     = (not np.isnan(adx_val)) and config.ADX_THRESHOLD <= adx_val <= adx_max
     rsi_buy_hi = _rsi_buy_high(symbol)
 
-    buy_all = (adx_ok and st_sig == 1
+    # ── Supertrend confirmation: N consecutive same-direction candles ─────────
+    # Only applied when prev_st_signal is available (backtester / live path).
+    # If ST_CONFIRM_CANDLES == 1, no confirmation needed (first-candle entry OK).
+    confirm = int(getattr(config, "ST_CONFIRM_CANDLES", 1))
+    if confirm >= 2 and prev_st_sig is not None:
+        # For now, N=2: current AND previous candle must agree on direction.
+        st_buy_confirmed  = (st_sig == 1  and int(prev_st_sig) == 1)
+        st_sell_confirmed = (st_sig == -1 and int(prev_st_sig) == -1)
+    else:
+        # confirm == 1 or prev not available: accept first-candle flip (old behaviour)
+        st_buy_confirmed  = (st_sig == 1)
+        st_sell_confirmed = (st_sig == -1)
+
+    buy_all = (adx_ok and st_buy_confirmed
                and close > ema_s
                and config.RSI_BUY_LOW <= rsi_val <= rsi_buy_hi
                and close > vwap_val)
 
-    sell_all = (adx_ok and st_sig == -1
+    sell_all = (adx_ok and st_sell_confirmed
                 and close < ema_s
                 and config.RSI_SELL_LOW <= rsi_val <= config.RSI_SELL_HIGH
                 and close < vwap_val)

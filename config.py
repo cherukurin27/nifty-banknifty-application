@@ -45,24 +45,42 @@ TIMEFRAME_MINUTES = 5
 ST_PERIOD     = 7
 ST_MULTIPLIER = 3.0
 
+# Supertrend confirmation candles — how many consecutive same-direction candles
+# required before firing an entry signal.
+# BUY  : ST must be GREEN for >= ST_CONFIRM_CANDLES consecutive candles
+# SELL : ST must be RED   for >= ST_CONFIRM_CANDLES consecutive candles
+#
+# Evidence (90d, 18:36 run):
+#   All 12 BUY losses exited within avg 50 min — all first-candle ST flip entries
+#   that reversed immediately (false flip). BUY wins avg hold = 188 min.
+#   Requiring 2 consecutive same-direction candles filters almost all false flips
+#   without delaying genuine trend entries by more than 1 candle (5 minutes).
+ST_CONFIRM_CANDLES = 2   # 1 = no confirmation required (old behaviour); 2 = current
+
 # EMA
 EMA_FAST = 9
 EMA_SLOW = 21
 
 # RSI — entry band
-# BUY  : Nifty  53–65  |  BankNifty 53–60
+# BUY  : Nifty  53–57  |  BankNifty 53–60
 #   Nifty    : raised lower from 45 (RSI 45–53 had 34% WR — weak momentum, excluded)
-#   BankNifty: upper lowered further to 60 (RSI 62–65 BUY had 41.7% WR, net -87 pts on 12 trades)
-# SELL : 25–55  (unchanged — sell side performs well at current levels)
+#              upper lowered 65→60→57:
+#                RSI 62–65 BUY = 23% WR (10L/3W, -116 pts) — removed
+#                RSI 57–59 BUY = 18% WR ( 9L/2W, -128 pts) — now also removed
+#                RSI 53–55 BUY = 60% WR ( best sub-band, +202 pts) — keep
+#                RSI 55–57 BUY = 57% WR ( +135 pts) — keep
+#   BankNifty: stays 60 — sub-band analysis not done yet for BNKN
+# SELL : 25–55  (confirmed correct — 25–50 = 50% WR, +859 pts)
 RSI_PERIOD    = 14
 RSI_BUY_LOW   = 53   # raised from 45 — weak-momentum zone (45–53) had 34% WR, now excluded
-RSI_BUY_HIGH  = 65   # Nifty default; BankNifty overrides to 60 (see RSI_BUY_HIGH_BANKNIFTY)
+RSI_BUY_HIGH  = 57   # lowered from 60 — RSI 57–59 BUY had 18% WR (9L/2W), -128 pts drag
 RSI_SELL_LOW  = 25
 RSI_SELL_HIGH = 55
 
 # BankNifty-specific RSI BUY upper bound
 # 90-day analysis: RSI 62–65 BUY → WR=41.7%, net −87 pts on 12 trades.
 # Lowering to 60 removes those 7 losing entries; validated +433 pts improvement.
+# Now same as NIFTY (both 60) — data shows 60 is the correct ceiling for both instruments.
 RSI_BUY_HIGH_BANKNIFTY = 60   # tighter upper bound — overbought zone starts earlier on BNKN
 
 # ATR — used for target display
@@ -73,7 +91,7 @@ ATR_MULTIPLIER = 2.0
 # ADX_MAX lowered from 60 to 40: entries above ADX 40 showed 30–40% WR on both symbols
 # (overextended trend — SL hit on first pullback). Saves Nifty +77 pts, BankNifty +126 pts DD.
 ADX_PERIOD    = 14
-ADX_THRESHOLD = 20   # minimum: market must be trending
+ADX_THRESHOLD = 20   # minimum: market must be trending (shared floor for BUY and SELL)
 ADX_MAX       = 40   # lowered from 60 — overextended moves (ADX>40) have poor WR
 
 # ─── Session Filter (IST) ────────────────────────────────────────────────────
@@ -83,12 +101,25 @@ FORCE_EXIT         = "15:15"
 NO_NEW_ENTRY_AFTER = "13:00"   # lowered from 13:30 — 13:00–13:30 window WR=30% (BNKN) / 45% (Nifty)
                                # BankNifty was net −316 pts in that window; Nifty +29 pts on 11 trades
 
-# BankNifty dead zone: 10:00–10:30 IST
-# 90-day analysis: 14 trades, WR=28.6%, net=−856 pts — worst 30-min slot by large margin.
-# Cause: opening volatility has not yet settled; Supertrend flips produce false signals.
-# Skipping saves +1,353 pts (C1) or +1,447 pts combined with RSI_BUY_HIGH_BANKNIFTY=60 (C8).
+# NIFTY BUY dead zone: 11:30–12:30 IST
+# 90-day analysis: 11:30–12:00 slot had 0 BUY wins in 3 trades, net=−122 pts.
+#                  12:00–12:30 slot had 0 BUY wins in 1 trade,  net=−19 pts.
+# Cause: lunch-hour low-volume drift — Supertrend flips GREEN on thin buying
+#        that reverses immediately when institutional order flow resumes at 12:30+.
+# SELL entries in this slot are NOT blocked — only BUY is affected.
+NIFTY_BUY_SKIP_START = "11:30"   # no NEW NIFTY BUY entries from 11:30
+NIFTY_BUY_SKIP_END   = "12:30"   # ... until 12:30 (exclusive)
+
+# BankNifty dead zone: 10:00–11:30 IST (extended from 10:30)
+# Original: 10:00–10:30 — 14 trades, WR=28.6%, net=−856 pts.
+# Extension reason: 11:00 slot showed 0 BUY wins in 9 trades, net=−968 pts (18:13 run).
+#   10:00 slot: 2 trades,  0W/2L, -246 pts
+#   10:30 slot: 3 trades,  0W/3L, -525 pts
+#   11:00 slot: 9 trades,  1W/8L, -968 pts  ← new — worst single slot in BNKN
+#   11:30 slot: 2 trades,  0W/2L, -247 pts
+# Combined 10:00–11:30: 16 trades, 1W/15L, -1,986 pts — all dead weight.
 BNKN_SKIP_SLOT_START = "10:00"   # no NEW BankNifty entries from 10:00
-BNKN_SKIP_SLOT_END   = "10:30"   # ... until 10:30 (exclusive)
+BNKN_SKIP_SLOT_END   = "11:30"   # extended from 10:30 — 11:00 slot had 0 BUY wins in 9 trades
 
 # ─── Trade Limits ─────────────────────────────────────────────────────────────
 MAX_TRADES_PER_SYMBOL = 6
@@ -105,27 +136,42 @@ SKIP_EXPIRY_DAY = {
 
 # ─── Exit Logic ──────────────────────────────────────────────────────────────
 #
-#  EXIT PRIORITY ORDER:
-#   1. Supertrend trailing SL  — primary; trails up/down with the trend
-#   2. Hard SL cap             — absolute backstop (fixed points from entry)
-#   3. SL Hit                  — candle low/high crosses the active SL
-#   4. RSI momentum exit       — BUY RSI<40, SELL RSI>60 (wide band, avoids noise)
-#   5. EOD force exit          — 15:15 IST
-#   6. Reverse signal          — 2 consecutive opposite-direction candles confirmed
+#  EXIT PRIORITY ORDER (per candle):
+#   1. Freeze SL at candle open — snapshot before any trail update
+#   2. SL Hit          — candle low/high crosses sl_frozen; exit at sl_frozen
+#   3. Supertrend trail SL — update only when no SL hit this candle
+#              BUY : sl = max(sl, st_value)  — trail rises with price
+#              SELL: sl = min(sl, st_value)  — trail falls with price
+#              This IS the profit protector — exits ONLY when trend REVERSES
+#   4. Hard SL cap     — absolute backstop (Nifty: fixed 55 pts; BNKN: 2×ATR)
+#   5. EOD force exit  — 15:15 IST (± EOD_SLIPPAGE_PTS)
+#   6. Reverse signal  — 2 consecutive opposite candles confirmed
+#
+#  Three and only three exit conditions:
+#    a) SL is hit (trend reversed, price fell/rose to the trailing SL)
+#    b) Opposite signal fires (trend flipped — close and reverse)
+#    c) 15:15 IST (intraday force close — no overnight positions)
 #
 
-# RSI exit thresholds (wide band to avoid noise exits)
-RSI_EXIT_BUY  = 40   # BUY  exits if RSI falls below 40
-RSI_EXIT_SELL = 60   # SELL exits if RSI rises above 60
+# EOD slippage — realistic market-order slippage at 15:15 force exit.
+# Applied adversely: BUY exits lower, SELL exits higher.
+# Set to 0 to disable (matches old behaviour).
+EOD_SLIPPAGE_PTS = {
+    "NIFTY"    : 2,
+    "BANKNIFTY": 8,
+}
 
 # Hard SL cap — absolute backstop when Supertrend trail is too wide
-# NIFTY    : fixed 55 pts  — ATR range is 20–45 pts; fixed cap sits perfectly in the middle
+# NIFTY    : fixed 55 pts → testing 45 pts
+#            90d analysis: 4 BUY trades hit full -55pt cap = -220 pts wasted
+#            RSI 62–65 removal reduces wide-entry trades; tighter cap prevents max blowouts
+#            ATR range is 20–45 pts; 45pt cap still above typical ATR, rarely triggered
 # BANKNIFTY: 2 × ATR(14)   — ATR swings 60–180+ pts; dynamic cap breathes with volatility
 #            Backtest shows +1,435 pts (+27%) over 90 days vs fixed 130pt cap
 # STOCKS   : 2 × ATR(14)   — same dynamic cap logic as BankNifty; each stock's ATR is different
 #            (RELIANCE ATR ≈ 8–15 pts, HDFCBANK ≈ 5–12, TCS ≈ 15–30 — fixed cap would be wrong)
 SL_CAP_PTS = {
-    "NIFTY": 55,          # fixed points — do not change
+    "NIFTY": 45,          # tightened from 55 — 4 trades hit full cap = -220 pts; test 45
 }
 ATR_SL_MULT_BANKNIFTY = 2.0   # BankNifty cap = entry ± ATR × this
 
