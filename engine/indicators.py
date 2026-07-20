@@ -234,6 +234,68 @@ def atr_pct(df: pd.DataFrame, period: int = 14) -> pd.Series:
     return (atr(df, period) / df["close"] * 100).round(4)
 
 
+# ─── Weekly trend (higher-timeframe regime) ──────────────────────────────────
+
+def weekly_trend_buy_ok(df: pd.DataFrame, symbol: str) -> pd.Series:
+    """
+    Returns a boolean Series (aligned to df index) indicating whether a BUY
+    entry is allowed on that candle based on the weekly EMA regime filter.
+
+    Logic:
+      - Resample 5-min candles to weekly (Monday open → Friday close).
+      - Compute EMA(WEEKLY_EMA_FAST) and EMA(WEEKLY_EMA_SLOW) on weekly close.
+      - For each intraday candle, look up the most recent completed weekly bar's
+        EMAs and set buy_ok = (weekly_ema_fast >= weekly_ema_slow).
+      - If WEEKLY_TREND_FILTER is False or symbol not in WEEKLY_TREND_SYMBOLS,
+        always returns True (no blocking).
+
+    Uses only data already in df — no extra API call required.
+    """
+    if not getattr(config, "WEEKLY_TREND_FILTER", False):
+        return pd.Series(True, index=df.index)
+    if symbol not in getattr(config, "WEEKLY_TREND_SYMBOLS", []):
+        return pd.Series(True, index=df.index)
+
+    fast_p = int(getattr(config, "WEEKLY_EMA_FAST", 10))
+    slow_p = int(getattr(config, "WEEKLY_EMA_SLOW", 20))
+
+    dt_col = pd.to_datetime(df["datetime"])
+    if dt_col.dt.tz is not None:
+        dt_col = dt_col.dt.tz_convert("Asia/Kolkata").dt.tz_localize(None)
+
+    # Resample to weekly (W-FRI = week ending Friday, standard Indian market week)
+    df_tmp = df.copy()
+    df_tmp["_dt"] = dt_col
+    df_tmp = df_tmp.set_index("_dt")
+
+    weekly = df_tmp["close"].resample("W-FRI").last().dropna()
+    if len(weekly) < slow_p + 2:
+        # Not enough weekly bars to compute the slow EMA — allow all BUYs
+        return pd.Series(True, index=df.index)
+
+    wema_fast = weekly.ewm(span=fast_p, adjust=False).mean()
+    wema_slow = weekly.ewm(span=slow_p, adjust=False).mean()
+    # True when fast EMA >= slow EMA (uptrend / neutral)
+    weekly_ok = (wema_fast >= wema_slow)
+
+    # Map back: each intraday candle uses the most recently COMPLETED weekly bar.
+    # The current incomplete week is ignored (shift by 1 week).
+    weekly_ok_shifted = weekly_ok.shift(1).fillna(False)
+
+    # Align to every intraday row: forward-fill the weekly boolean
+    intraday_dt = pd.Series(dt_col.values, index=df.index)
+    result = pd.Series(False, index=df.index)
+    for idx, cdt in zip(df.index, intraday_dt):
+        # Find the last completed week-end <= this candle's date
+        week_ends = weekly_ok_shifted.index[weekly_ok_shifted.index <= cdt]
+        if len(week_ends) == 0:
+            result[idx] = True   # no weekly history yet — allow (warmup)
+        else:
+            result[idx] = bool(weekly_ok_shifted[week_ends[-1]])
+
+    return result
+
+
 # ─── Master: add all indicators to a DataFrame ────────────────────────────────
 
 def add_indicators(df: pd.DataFrame, extended: bool = False) -> pd.DataFrame:

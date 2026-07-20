@@ -1,0 +1,404 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Winner vs Loser Deep Analysis</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"Segoe UI",system-ui,sans-serif;font-size:14px;line-height:1.6;background:#fff;color:#1f2328}
+  .wrap{max-width:860px;margin:0 auto;padding:28px 16px}
+  h1{font-size:20px;margin-bottom:4px}
+  h2{font-size:16px;font-weight:600;margin:28px 0 8px;border-bottom:1px solid #e5e7eb;padding-bottom:4px}
+  h3{font-size:13px;font-weight:600;margin:16px 0 5px;color:#444}
+  .muted{color:#57606a;font-size:13px;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px}
+  th{background:#f7f8fa;text-align:left;padding:6px 9px;border:1px solid #e5e7eb;font-weight:600;white-space:nowrap}
+  td{padding:5px 9px;border:1px solid #e5e7eb;white-space:nowrap}
+  tr:nth-child(even) td{background:#fafafa}
+  .pos{color:#2a7a2a;font-weight:600}
+  .neg{color:#b22222;font-weight:600}
+  .neu{color:#57606a}
+  .hl-edge{background:#eef6ee!important}
+  .hl-drain{background:#fff2f2!important}
+  .hl-warn{background:#fffbe6!important}
+  .tag{display:inline-block;padding:1px 7px;border-radius:9px;font-size:11px;font-weight:600;margin-left:5px;vertical-align:middle}
+  .tag-edge{background:#e2f0e2;color:#2a7a2a}
+  .tag-drain{background:#fde8e8;color:#b22222}
+  .tag-warn{background:#fff3cd;color:#856404}
+  .kpi-row{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0 18px}
+  .kpi{background:#f7f8fa;border:1px solid #e5e7eb;border-radius:6px;padding:10px 15px;min-width:120px;text-align:center}
+  .kpi-val{font-size:20px;font-weight:700}
+  .kpi-lbl{font-size:11px;color:#57606a;margin-top:1px}
+  .insight{background:#f7f8fa;border:1px solid #e5e7eb;border-radius:6px;padding:13px 15px;margin:12px 0;font-size:13px;line-height:1.7}
+  .insight b{color:#1f2328}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  section{margin-bottom:36px}
+  .bar-cell{display:flex;align-items:center;gap:5px}
+  .bar{height:12px;border-radius:2px;display:inline-block;min-width:2px}
+  footer{margin-top:40px;padding-top:12px;border-top:1px solid #e5e7eb;text-align:center;font-size:12px;color:#57606a}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Winner vs Loser Deep Analysis</h1>
+<p class="muted">NIFTY + BANKNIFTY  |  180d  |  223 trades total  |  All data from live backtest report</p>
+
+
+<div class="kpi-row">
+  <div class="kpi"><div class="kpi-val">223</div><div class="kpi-lbl">Total Trades</div></div>
+  <div class="kpi"><div class="kpi-val pos">88</div><div class="kpi-lbl">Winners</div></div>
+  <div class="kpi"><div class="kpi-val neg">135</div><div class="kpi-lbl">Losers</div></div>
+  <div class="kpi"><div class="kpi-val">39.5%</div><div class="kpi-lbl">Win Rate</div></div>
+  <div class="kpi"><div class="kpi-val pos">193 min</div><div class="kpi-lbl">Win Avg Hold</div></div>
+  <div class="kpi"><div class="kpi-val neg">67 min</div><div class="kpi-lbl">Loss Avg Hold</div></div>
+</div>
+
+<div class="insight">
+  <b>The single biggest separator:</b> Hold duration. Winners average <b>193 min</b>, losers average <b>67 min</b> — a 3x difference.
+  This is not a coincidence. Winners are trades that the Supertrend never reverses on. Losers are trades the market immediately disagrees with and SL-hits within the hour.
+  <b>RSI and ADX at entry are nearly identical between winners and losers</b> — they do not predict outcome. Only whether the trade survives the first 60–90 minutes matters.
+</div>
+
+
+<section>
+<h2>Finding 1 — Hold Duration is the Only Real Separator</h2>
+<div class="two-col">
+<div>
+  <h3>NIFTY — Hold Duration</h3>
+  <table>
+    <thead><tr><th>Hold Bucket</th><th>Trades</th><th>WR%</th><th>Net Pts</th></tr></thead>
+    <tbody>
+      <tr class="hl-drain"><td>0–15 min</td><td>12</td><td class="neg">0%</td><td class="neg">−517</td></tr>
+      <tr class="hl-drain"><td>15–30 min</td><td>13</td><td class="neg">0%</td><td class="neg">−578</td></tr>
+      <tr class="hl-drain"><td>30–60 min</td><td>15</td><td class="neg">0%</td><td class="neg">−574</td></tr>
+      <tr class="hl-drain"><td>1–2 hrs</td><td>19</td><td class="neg">5%</td><td class="neg">−654</td></tr>
+      <tr class="hl-edge"><td>2–3 hrs</td><td>27</td><td class="pos">82%</td><td class="pos">+1,022</td></tr>
+      <tr class="hl-edge"><td>3–4 hrs</td><td>7</td><td class="pos">71%</td><td class="pos">+690</td></tr>
+      <tr class="hl-edge"><td>4–6 hrs (EOD)</td><td>12</td><td class="pos">100%</td><td class="pos">+1,670</td></tr>
+    </tbody>
+  </table>
+</div>
+<div>
+  <h3>BANKNIFTY — Hold Duration</h3>
+  <table>
+    <thead><tr><th>Hold Bucket</th><th>Trades</th><th>WR%</th><th>Net Pts</th></tr></thead>
+    <tbody>
+      <tr class="hl-drain"><td>0–15 min</td><td>2</td><td class="neg">0%</td><td class="neg">−192</td></tr>
+      <tr class="hl-drain"><td>15–30 min</td><td>10</td><td class="neg">0%</td><td class="neg">−1,472</td></tr>
+      <tr class="hl-drain"><td>30–60 min</td><td>24</td><td class="neg">8%</td><td class="neg">−3,172</td></tr>
+      <tr class="hl-drain"><td>1–2 hrs</td><td>25</td><td class="neg">12%</td><td class="neg">−2,325</td></tr>
+      <tr class="hl-edge"><td>2–3 hrs</td><td>28</td><td class="pos">61%</td><td class="pos">+3,114</td></tr>
+      <tr class="hl-edge"><td>3–4 hrs</td><td>22</td><td class="pos">91%</td><td class="pos">+7,063</td></tr>
+      <tr class="hl-edge"><td>4–6 hrs (EOD)</td><td>7</td><td class="pos">86%</td><td class="pos">+2,928</td></tr>
+    </tbody>
+  </table>
+</div>
+</div>
+<div class="insight">
+  <b>The 2-hour threshold is the single most predictive rule in the entire strategy:</b><br />
+  Any trade still alive after 120 minutes (2 hours from entry) has a 61–100% chance of being a winner.
+  Any trade closed before 60 minutes is essentially a guaranteed loss (0–12% WR).
+  <b>What this means:</b> The strategy cannot improve by exiting losers faster — they <em>already</em> exit fast via SL. The problem is that the SL is hit within minutes on bad entries. The Supertrend SL correctly protects the good trades (they survive and grow). No additional exit rule is needed.
+</div>
+</section>
+
+
+<section>
+<h2>Finding 2 — RSI and ADX Do NOT Predict Winners at Entry</h2>
+<div class="two-col">
+<div>
+  <h3>NIFTY — Indicator at Entry</h3>
+  <table>
+    <thead><tr><th>Metric</th><th>Winners avg</th><th>Losers avg</th><th>Delta</th></tr></thead>
+    <tbody>
+      <tr><td>RSI</td><td>43.06</td><td>44.21</td><td class="neu">−1.15 (noise)</td></tr>
+      <tr><td>ADX</td><td>27.96</td><td>29.87</td><td class="neu">−1.91 (noise)</td></tr>
+      <tr><td>Hold min</td><td class="pos">200</td><td class="neg">56</td><td class="pos">+144 (signal!)</td></tr>
+    </tbody>
+  </table>
+</div>
+<div>
+  <h3>BANKNIFTY — Indicator at Entry</h3>
+  <table>
+    <thead><tr><th>Metric</th><th>Winners avg</th><th>Losers avg</th><th>Delta</th></tr></thead>
+    <tbody>
+      <tr><td>RSI</td><td>45.87</td><td>46.47</td><td class="neu">−0.60 (noise)</td></tr>
+      <tr><td>ADX</td><td>27.18</td><td>27.66</td><td class="neu">−0.48 (noise)</td></tr>
+      <tr><td>Hold min</td><td class="pos">188</td><td class="neg">76</td><td class="pos">+112 (signal!)</td></tr>
+    </tbody>
+  </table>
+</div>
+</div>
+<div class="insight">
+  <b>Confirmed: RSI and ADX are not predictive filters.</b> Winners and losers enter at virtually identical RSI and ADX values.
+  Tightening RSI ranges or changing ADX thresholds will not improve outcome selection —
+  it will only reduce trade count without improving win rate.
+  The only thing that differs between a winner and a loser <em>at the moment of entry</em> is which direction the market decides to move in the next 2+ hours.
+</div>
+</section>
+
+
+<section>
+<h2>Finding 3 — Low ADX Outperforms High ADX (Counter-Intuitive)</h2>
+<div class="two-col">
+<div>
+  <h3>NIFTY — ADX Buckets</h3>
+  <table>
+    <thead><tr><th>ADX Range</th><th>Trades</th><th>WR%</th><th>Net Pts</th></tr></thead>
+    <tbody>
+      <tr class="hl-edge"><td>20–23</td><td>21</td><td class="pos">57%</td><td class="pos">+566</td></tr>
+      <tr class="hl-edge"><td>23–26</td><td>19</td><td class="pos">42%</td><td class="pos">+455</td></tr>
+      <tr class="hl-warn"><td>26–29</td><td>11</td><td class="neg">27%</td><td class="neg">−67</td></tr>
+      <tr class="hl-drain"><td>29–33</td><td>25</td><td class="neg">32%</td><td class="neg">−76</td></tr>
+      <tr class="hl-drain"><td>33–38</td><td>19</td><td class="neg">26%</td><td class="pos">+21</td></tr>
+      <tr><td>38+</td><td>10</td><td>40%</td><td class="pos">+160</td></tr>
+    </tbody>
+  </table>
+</div>
+<div>
+  <h3>BANKNIFTY — ADX Buckets</h3>
+  <table>
+    <thead><tr><th>ADX Range</th><th>Trades</th><th>WR%</th><th>Net Pts</th></tr></thead>
+    <tbody>
+      <tr class="hl-edge"><td>20–23</td><td>39</td><td class="pos">44%</td><td class="pos">+2,707</td></tr>
+      <tr class="hl-warn"><td>23–26</td><td>23</td><td class="neg">35%</td><td class="pos">+2,542</td></tr>
+      <tr><td>26–29</td><td>11</td><td>46%</td><td class="pos">+598</td></tr>
+      <tr class="hl-warn"><td>29–33</td><td>19</td><td>47%</td><td class="pos">+789</td></tr>
+      <tr class="hl-drain"><td>33–38</td><td>16</td><td class="neg">31%</td><td class="neg">−799</td></tr>
+      <tr><td>38+</td><td>10</td><td>40%</td><td class="pos">+108</td></tr>
+    </tbody>
+  </table>
+</div>
+</div>
+<div class="insight">
+  <b>High ADX (33–38) is the worst performing bucket for both symbols.</b>
+  NIFTY ADX 33–38: 26% WR. BNKN ADX 33–38: 31% WR, −799 pts. This is the opposite of what most traders expect.
+  The current <b>ADX_MAX = 40</b> cap is correct — it blocks the worst bucket (38+).
+  Consideration: raising ADX_THRESHOLD from 20 to 22–23 would remove the borderline trades
+  without cutting the profitable ADX 20–23 bucket entirely.
+  <b>Do not raise ADX_MAX below 33 — BNKN ADX 23–26 produces +2,542 pts despite low ADX.</b>
+</div>
+</section>
+
+
+<section>
+<h2>Finding 4 — SELL RSI 38–44 is a Drain Zone (especially BNKN)</h2>
+<div class="two-col">
+<div>
+  <h3>NIFTY SELL — RSI Buckets</h3>
+  <table>
+    <thead><tr><th>RSI Zone</th><th>Trades</th><th>WR%</th><th>Net Pts</th></tr></thead>
+    <tbody>
+      <tr><td>RSI 25–30</td><td>8</td><td>38%</td><td class="pos">+206</td></tr>
+      <tr class="hl-edge"><td>RSI 30–34</td><td>12</td><td class="pos">58%</td><td class="pos">+364</td></tr>
+      <tr class="hl-edge"><td>RSI 34–38</td><td>15</td><td class="pos">40%</td><td class="pos">+348</td></tr>
+      <tr class="hl-warn"><td>RSI 38–44</td><td>30</td><td class="neg">30%</td><td class="pos">+5</td></tr>
+    </tbody>
+  </table>
+</div>
+<div>
+  <h3>BANKNIFTY SELL — RSI Buckets</h3>
+  <table>
+    <thead><tr><th>RSI Zone</th><th>Trades</th><th>WR%</th><th>Net Pts</th></tr></thead>
+    <tbody>
+      <tr class="hl-drain"><td>RSI 25–30</td><td>6</td><td class="neg">17%</td><td class="neg">−26</td></tr>
+      <tr class="hl-edge"><td>RSI 30–34</td><td>14</td><td class="pos">50%</td><td class="pos">+987</td></tr>
+      <tr class="hl-edge"><td>RSI 34–38</td><td>19</td><td class="pos">53%</td><td class="pos">+2,386</td></tr>
+      <tr class="hl-warn"><td>RSI 38–44</td><td>27</td><td class="neg">33%</td><td class="neg">−341</td></tr>
+    </tbody>
+  </table>
+</div>
+</div>
+<div class="insight">
+  <b>RSI 30–38 is the SELL sweet spot for both symbols.</b>
+  NIFTY SELL RSI 30–34: 58% WR. BNKN SELL RSI 34–38: 53% WR, +2,386 pts.<br />
+  <b>RSI 38–44 is currently allowed by RSI_SELL_HIGH=44 but is weak:</b>
+  NIFTY 30% WR (+5 pts net, essentially zero), BNKN 33% WR (−341 pts net drain).
+  The RSI_SELL_HIGH was already reduced from 55 to 44 — but even 44 may be too high for BNKN.
+  <b>Test: lower RSI_SELL_HIGH for BNKN to 40 and observe effect on BNKN SELL RSI 38–44 cohort.</b>
+</div>
+</section>
+
+
+<section>
+<h2>Finding 5 — Fast Losers: 37 Trades, −2,759 pts, 14 min Avg Hold</h2>
+<div class="insight">
+  <b>Definition:</b> SL-hit trades with hold time under 30 minutes — trades where the market immediately went the wrong way.
+  These represent 27% of all losses but are concentrated in specific entry slots.
+</div>
+<div class="two-col">
+<div>
+  <h3>NIFTY — 25 Fast Losers (−1,095 pts)</h3>
+  <table>
+    <thead><tr><th>Entry Slot</th><th>Count</th><th>Side</th></tr></thead>
+    <tbody>
+      <tr class="hl-drain"><td>09:30–10:00</td><td>7</td><td>4 SELL, 3 BUY</td></tr>
+      <tr class="hl-warn"><td>10:00–10:30</td><td>2</td><td>Mixed</td></tr>
+      <tr class="hl-warn"><td>10:30–11:00</td><td>4</td><td>Mixed</td></tr>
+      <tr class="hl-warn"><td>11:00–11:30</td><td>4</td><td>Mixed</td></tr>
+      <tr class="hl-drain"><td>12:30–13:00</td><td>8</td><td>5 SELL, 3 BUY</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:12px;color:#57606a;margin-top:6px">Avg RSI: 45.4  |  Avg ADX: 29.7  |  Avg hold: 14 min</p>
+</div>
+<div>
+  <h3>BANKNIFTY — 12 Fast Losers (−1,664 pts)</h3>
+  <table>
+    <thead><tr><th>Entry Slot</th><th>Count</th><th>Side</th></tr></thead>
+    <tbody>
+      <tr class="hl-drain"><td>09:30–10:00</td><td>6</td><td>4 SELL, 2 BUY</td></tr>
+      <tr class="hl-warn"><td>11:30–12:00</td><td>3</td><td>Mixed</td></tr>
+      <tr class="hl-warn"><td>12:00–12:30</td><td>2</td><td>Mixed</td></tr>
+      <tr><td>12:30–13:00</td><td>1</td><td>SELL</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:12px;color:#57606a;margin-top:6px">Avg RSI: 48.1  |  Avg ADX: 28.2  |  Avg hold: 19 min</p>
+</div>
+</div>
+<div class="insight">
+  <b>Two dominant fast-loser clusters:</b><br />
+  1. <b>09:30–10:00 open-range</b>: 13 fast losers combined. These are entries fired on the opening spike/gap before price direction is established. Extending SESSION_START from 09:40 to 09:50 or even 10:00 would eliminate ~10 of these.<br />
+  2. <b>12:30–13:00 NIFTY only</b>: 8 fast losers, all reversing within 15 min. These are mid-session false breakouts. The NO_NEW_ENTRY_AFTER=13:00 already caps this — but the 12:30–13:00 window has 8 fast deaths and only generated +31 pts net total across all 24 trades in that slot.
+</div>
+</section>
+
+
+<section>
+<h2>Finding 6 — Monthly × Direction: The Bear Market BUY Problem</h2>
+<div class="two-col">
+<div>
+  <h3>NIFTY — Monthly BUY vs SELL</h3>
+  <table>
+    <thead><tr><th>Month</th><th>BUY WR</th><th>SELL WR</th><th>Net Pts</th></tr></thead>
+    <tbody>
+      <tr class="hl-drain"><td>Jan-26</td><td class="neg">0%</td><td>43%</td><td class="pos">+229</td></tr>
+      <tr class="hl-warn"><td>Feb-26</td><td>50%</td><td class="neg">23%</td><td class="neg">−106</td></tr>
+      <tr class="hl-drain"><td>Mar-26</td><td class="neg">0%</td><td>30%</td><td class="neg">−244</td></tr>
+      <tr class="hl-edge"><td>Apr-26</td><td class="pos">67%</td><td>40%</td><td class="pos">+198</td></tr>
+      <tr class="hl-edge"><td>May-26</td><td>38%</td><td>46%</td><td class="pos">+247</td></tr>
+      <tr class="hl-edge"><td>Jun-26</td><td>50%</td><td>33%</td><td class="pos">+239</td></tr>
+      <tr class="hl-edge"><td>Jul-26</td><td>50%</td><td class="pos">80%</td><td class="pos">+495</td></tr>
+    </tbody>
+  </table>
+</div>
+<div>
+  <h3>BANKNIFTY — Monthly BUY vs SELL</h3>
+  <table>
+    <thead><tr><th>Month</th><th>BUY WR</th><th>SELL WR</th><th>Net Pts</th></tr></thead>
+    <tbody>
+      <tr class="hl-drain"><td>Jan-26</td><td>33%</td><td class="neg">0%</td><td class="neg">−381</td></tr>
+      <tr class="hl-warn"><td>Feb-26</td><td>30%</td><td>38%</td><td class="pos">+94</td></tr>
+      <tr><td>Mar-26</td><td class="neg">14%</td><td>40%</td><td class="pos">+644</td></tr>
+      <tr class="hl-edge"><td>Apr-26</td><td class="pos">70%</td><td>38%</td><td class="pos">+3,317</td></tr>
+      <tr class="hl-warn"><td>May-26</td><td>38%</td><td>54%</td><td class="neg">−651</td></tr>
+      <tr class="hl-edge"><td>Jun-26</td><td class="pos">56%</td><td class="pos">56%</td><td class="pos">+2,448</td></tr>
+      <tr class="hl-warn"><td>Jul-26</td><td class="neg">20%</td><td>33%</td><td class="pos">+474</td></tr>
+    </tbody>
+  </table>
+</div>
+</div>
+<div class="insight">
+  <b>NIFTY BUY in Jan–Mar 2026 was a structural drag:</b> 0% WR in Jan, 0% WR in Mar, combined −17 buy trades losing money.
+  This is the bear-market period. The weekly trend filter (EMA10 vs EMA20 weekly) directly targets this.
+  <b>BNKN BUY in Apr was 70% WR and generated +3,317 pts</b> — BNKN BUY should not be filtered by weekly trend.
+  Note: May 2026 BNKN was −651 pts despite 47% WR — that month's losses were concentrated in a few very large SL hits (avg loss −123 pts).
+</div>
+</section>
+
+
+<section>
+<h2>Finding 7 — EOD Wins: 56 Trades = 63% of All Wins, 15,846 pts</h2>
+<div class="two-col">
+<div>
+  <h3>NIFTY EOD Wins</h3>
+  <table>
+    <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>EOD wins</td><td class="pos">25 trades</td></tr>
+      <tr><td>% of all NIFTY wins</td><td class="pos">62.5%</td></tr>
+      <tr><td>Avg pts per EOD win</td><td class="pos">+115 pts</td></tr>
+      <tr><td>SL wins (non-EOD)</td><td>15 trades, avg +44 pts</td></tr>
+      <tr><td>EOD win rate</td><td class="pos">92.6%</td></tr>
+    </tbody>
+  </table>
+</div>
+<div>
+  <h3>BANKNIFTY EOD Wins</h3>
+  <table>
+    <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>EOD wins</td><td class="pos">31 trades</td></tr>
+      <tr><td>% of all BNKN wins</td><td class="pos">64.6%</td></tr>
+      <tr><td>Avg pts per EOD win</td><td class="pos">+418 pts</td></tr>
+      <tr><td>SL wins (non-EOD)</td><td>17 trades, avg +91 pts</td></tr>
+      <tr><td>EOD win rate</td><td class="pos">83.8%</td></tr>
+    </tbody>
+  </table>
+</div>
+</div>
+<div class="insight">
+  <b>EOD exits generate 15,846 pts out of total ~7,002 net pts combined.</b>
+  Without EOD holds the strategy is deeply negative. The EOD winners average 4–5x the size of intraday SL-hit winners.
+  These are the trades where the Supertrend SL trailed all day without reversing — meaning the trend was genuinely sustained.
+  <b>No rule should cap these early. Any profit target or hard time-exit before 15:00 directly destroys the strategy's edge.</b>
+</div>
+</section>
+
+
+<section>
+<h2>Actionable Summary — What to Change (Priority Order)</h2>
+<table>
+  <thead>
+    <tr><th>#</th><th>Change</th><th>Target</th><th>Evidence</th><th>Expected Effect</th></tr>
+  </thead>
+  <tbody>
+    <tr class="hl-edge">
+      <td>1</td>
+      <td>Weekly Trend Filter: block NIFTY BUY when weekly EMA10 &lt; EMA20</td>
+      <td>NIFTY BUY</td>
+      <td>0% WR in Jan + Mar 2026 (bear market months)</td>
+      <td>Eliminate ~12 losing BUY trades, save ~300–400 pts</td>
+    </tr>
+    <tr class="hl-edge">
+      <td>2</td>
+      <td>Lower BNKN RSI_SELL_HIGH from 44 to 40</td>
+      <td>BNKN SELL</td>
+      <td>BNKN SELL RSI 38–44: 33% WR, −341 pts (27 trades)</td>
+      <td>Remove ~10 weak BNKN SELL trades, save ~100–200 pts</td>
+    </tr>
+    <tr class="hl-warn">
+      <td>3</td>
+      <td>Daily Circuit Breaker: stop entries after 2 consecutive full SL hits</td>
+      <td>Both</td>
+      <td>NIFTY MCL=12 — losing streaks cluster in bad-market days</td>
+      <td>MCL 12 → ~5, reduce MDD</td>
+    </tr>
+    <tr class="hl-warn">
+      <td>4</td>
+      <td>Consider SESSION_START 09:50 (delay first entry by 10 min)</td>
+      <td>Both</td>
+      <td>09:30–09:50 slot: 13 fast losers combined, −1,095 pts</td>
+      <td>Removes opening-spike false signals</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td>Do NOT change exit logic, EOD time, or add profit targets</td>
+      <td>Both</td>
+      <td>EOD holds = 63% of wins, 15,846 pts of total P&amp;L</td>
+      <td>Any earlier exit destroys the entire edge</td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td>Do NOT tighten RSI or raise ADX further</td>
+      <td>Both</td>
+      <td>RSI/ADX delta between winners and losers is &lt;2 pts — noise</td>
+      <td>Fewer trades, same WR — no improvement</td>
+    </tr>
+  </tbody>
+</table>
+</section>
+
+<footer>Made with IBM Bob</footer>
+</div>
+</body>
+</html>

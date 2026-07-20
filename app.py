@@ -269,7 +269,19 @@ with tab_live:
                     st.session_state.last_alert[sym] = ct
                     st.session_state.trade_counts[sym] += 1
 
-    _refresh_live()
+    try:
+        _refresh_live()
+    except Exception as _rf_err:
+        _rf_msg = str(_rf_err)
+        if "exceeding access rate" in _rf_msg:
+            st.warning(
+                "⚠️ Angel One rate limit reached — data will refresh on the next cycle (60 s). "
+                "This happens after many rapid API calls (e.g. running the backtest). "
+                "No action needed.",
+                icon="⏳",
+            )
+        else:
+            st.error(f"⚠️ Data refresh error: {_rf_msg}")
 
     # ── login error ───────────────────────────────────────────────────────────
     if st.session_state.login_err:

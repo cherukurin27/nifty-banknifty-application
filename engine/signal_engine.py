@@ -115,6 +115,26 @@ def _rsi_buy_high(symbol: str) -> float:
     return float(config.RSI_BUY_HIGH)
 
 
+def _rsi_sell_high(symbol: str) -> float:
+    """Return the RSI SELL upper bound for this symbol.
+    BankNifty uses RSI_SELL_HIGH_BANKNIFTY (40); all others use RSI_SELL_HIGH (44).
+    Analysis: BNKN SELL RSI 38–44 = 33% WR, −341 pts — tightened to 40.
+    """
+    if symbol == "BANKNIFTY":
+        return float(getattr(config, "RSI_SELL_HIGH_BANKNIFTY", config.RSI_SELL_HIGH))
+    return float(config.RSI_SELL_HIGH)
+
+
+def _rsi_buy_low(symbol: str) -> float:
+    """Return the RSI BUY lower bound for this symbol.
+    BankNifty: raised to 57 (RSI 54-57 BUY = 0% WR, -788 pts eliminated).
+    All others: RSI_BUY_LOW (53).
+    """
+    if symbol == "BANKNIFTY":
+        return float(getattr(config, "RSI_BUY_LOW_BANKNIFTY", config.RSI_BUY_LOW))
+    return float(config.RSI_BUY_LOW)
+
+
 def evaluate_signal(df: pd.DataFrame, symbol: str = "") -> dict:
     """
     Evaluate the latest completed candle and return a signal dict.
@@ -221,19 +241,20 @@ def evaluate_signal(df: pd.DataFrame, symbol: str = "") -> dict:
         st_sell_lbl = "Supertrend RED"
 
     # ── BUY conditions ──────────────────────────────────────────────────────
+    rsi_lo = _rsi_buy_low(symbol)
     rsi_hi = _rsi_buy_high(symbol)
     buy_conditions = {
-        st_buy_lbl                      : st_buy_ok,
-        "Price > EMA21"                 : close > ema_s,
-        f"RSI {config.RSI_BUY_LOW}-{rsi_hi:.0f}": config.RSI_BUY_LOW <= rsi_val <= rsi_hi,
-        "Price above VWAP"              : close > vwap_val,
+        st_buy_lbl                            : st_buy_ok,
+        "Price > EMA21"                       : close > ema_s,
+        f"RSI {rsi_lo:.0f}-{rsi_hi:.0f}"     : rsi_lo <= rsi_val <= rsi_hi,
+        "Price above VWAP"                    : close > vwap_val,
     }
 
     # ── SELL conditions ─────────────────────────────────────────────────────
     sell_conditions = {
         st_sell_lbl         : st_sell_ok,
         "Price < EMA21"     : close < ema_s,
-        f"RSI {config.RSI_SELL_LOW}-{config.RSI_SELL_HIGH}": config.RSI_SELL_LOW <= rsi_val <= config.RSI_SELL_HIGH,
+        f"RSI {config.RSI_SELL_LOW}-{_rsi_sell_high(symbol):.0f}": config.RSI_SELL_LOW <= rsi_val <= _rsi_sell_high(symbol),
         "Price below VWAP"  : close < vwap_val,
     }
 
@@ -316,6 +337,7 @@ def eval_entry_signal(row) -> str:
 
     adx_max    = config.ADX_MAX if isinstance(config.ADX_MAX, (int, float)) else 60
     adx_ok     = (not np.isnan(adx_val)) and config.ADX_THRESHOLD <= adx_val <= adx_max
+    rsi_buy_lo = _rsi_buy_low(symbol)
     rsi_buy_hi = _rsi_buy_high(symbol)
 
     # ── Supertrend confirmation: N consecutive same-direction candles ─────────
@@ -333,12 +355,13 @@ def eval_entry_signal(row) -> str:
 
     buy_all = (adx_ok and st_buy_confirmed
                and close > ema_s
-               and config.RSI_BUY_LOW <= rsi_val <= rsi_buy_hi
+               and rsi_buy_lo <= rsi_val <= rsi_buy_hi
                and close > vwap_val)
 
+    rsi_sell_hi = _rsi_sell_high(symbol)
     sell_all = (adx_ok and st_sell_confirmed
                 and close < ema_s
-                and config.RSI_SELL_LOW <= rsi_val <= config.RSI_SELL_HIGH
+                and config.RSI_SELL_LOW <= rsi_val <= rsi_sell_hi
                 and close < vwap_val)
 
     if buy_all:  return SIGNAL_BUY

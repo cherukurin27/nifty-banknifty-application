@@ -28,13 +28,18 @@ _MAX_DAYS_PER_CALL = 30
 
 # ─── single chunk fetch ───────────────────────────────────────────────────────
 
+_RATE_LIMIT_MSG = "exceeding access rate"   # substring Angel One returns on quota hit
+
 def _fetch_chunk(api, token: str, exchange: str, interval: str,
-                 from_date: datetime.date, to_date: datetime.date) -> pd.DataFrame:
+                 from_date: datetime.date, to_date: datetime.date,
+                 _retries: int = 3) -> pd.DataFrame:
     """Fetch one chunk of candles between from_date and to_date.
 
     Angel One requires HH:MM in fromdate/todate.  We always open at 09:15 and
     close at 15:30 IST.  For 'today' we cap todate at the current time so the
     API does not reject a future timestamp.
+
+    Retries up to _retries times with exponential back-off on rate-limit errors.
     """
     today_date = datetime.date.today()
     from_ts = datetime.datetime.combine(from_date, datetime.time(9, 15))
@@ -52,7 +57,20 @@ def _fetch_chunk(api, token: str, exchange: str, interval: str,
         "todate"      : to_ts.strftime("%Y-%m-%d %H:%M"),
     }
 
-    resp = api.getCandleData(params)
+    for attempt in range(1, _retries + 1):
+        try:
+            resp = api.getCandleData(params)
+            break   # success — exit retry loop
+        except Exception as exc:
+            err_str = str(exc)
+            if _RATE_LIMIT_MSG in err_str and attempt < _retries:
+                wait = 10 * attempt   # 10s, 20s, 30s
+                logger.warning("Rate limit hit (attempt %d/%d) — waiting %ds …",
+                               attempt, _retries, wait)
+                time.sleep(wait)
+            else:
+                logger.error("getCandleData error (%s – %s): %s", from_date, to_date, exc)
+                return pd.DataFrame()
 
     if not resp or resp.get("status") is False:
         logger.error("getCandleData failed (%s – %s): %s", from_date, to_date, resp)
@@ -117,7 +135,7 @@ def fetch_candles(api, token: str, exchange: str, interval: str = "FIVE_MINUTE",
 
         # Small delay between API calls to avoid rate limiting
         if chunk_end > start_dt:
-            time.sleep(0.4)
+            time.sleep(1.5)
 
     if not chunks:
         return pd.DataFrame()

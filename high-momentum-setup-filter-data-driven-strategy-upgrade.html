@@ -1,0 +1,356 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>High-Momentum Setup Filter — Strategy Upgrade</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"Segoe UI",system-ui,sans-serif;font-size:14px;line-height:1.6;background:#fff;color:#1f2328}
+  .wrap{max-width:880px;margin:0 auto;padding:24px 16px}
+  h1{font-size:21px;margin-bottom:4px}
+  h2{font-size:16px;margin:28px 0 8px;border-bottom:1px solid #e5e7eb;padding-bottom:4px}
+  h3{font-size:13px;font-weight:600;margin:14px 0 5px;color:#444;text-transform:uppercase;letter-spacing:.4px}
+  .muted{color:#57606a;font-size:12px;margin-bottom:16px}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px}
+  th{background:#f7f8fa;text-align:left;padding:6px 8px;border:1px solid #e5e7eb;font-weight:600;white-space:nowrap}
+  td{padding:5px 8px;border:1px solid #e5e7eb;white-space:nowrap}
+  tr:nth-child(even) td{background:#fafafa}
+  .pos{color:#2a7a2a;font-weight:600}
+  .neg{color:#b22222;font-weight:600}
+  .neutral{color:#57606a}
+  .eod{background:#edfaed !important}
+  .eod td{background:#edfaed !important}
+  .hilight{background:#fffbe6 !important}
+  .hilight td{background:#fffbe6 !important}
+  .danger td{background:#fff0f0 !important}
+  .insight{background:#f7f8fa;border:1px solid #e5e7eb;border-left:4px solid #3b82d4;border-radius:4px;padding:12px 16px;margin:14px 0;font-size:13px}
+  .insight.warn{border-left-color:#e07b00}
+  .insight.good{border-left-color:#2a7a2a}
+  .insight.idea{border-left-color:#7c5cd8}
+  .insight.alert{border-left-color:#b22222}
+  .insight b{display:block;margin-bottom:3px;font-size:13px}
+  .kpi-row{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0 20px}
+  .kpi{background:#f7f8fa;border:1px solid #e5e7eb;border-radius:6px;padding:10px 16px;min-width:115px;text-align:center}
+  .kpi-val{font-size:18px;font-weight:700}
+  .kpi-lbl{font-size:11px;color:#57606a;margin-top:2px}
+  .filter-card{border:1px solid #e5e7eb;border-radius:6px;padding:14px 16px;margin:12px 0;background:#fafafa}
+  .filter-card h4{font-size:14px;font-weight:700;margin-bottom:6px}
+  .filter-card .verdict{display:inline-block;font-size:11px;font-weight:700;padding:2px 10px;border-radius:10px;margin-left:8px;vertical-align:middle}
+  .v-add{background:#d4f5d4;color:#1a6b1a}
+  .v-test{background:#ede9fb;color:#5a3aab}
+  .v-keep{background:#e8f0fe;color:#1a56db}
+  .v-drop{background:#ffe8e8;color:#9b1c1c}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .section{margin-bottom:36px}
+  .badge{display:inline-block;font-size:11px;padding:1px 8px;border-radius:10px;font-weight:600}
+  .b-hi{background:#d4f5d4;color:#1a6b1a}
+  .b-lo{background:#ffe8e8;color:#9b1c1c}
+  .b-mid{background:#fef3e2;color:#9a5200}
+  ul{margin:5px 0 0 18px}
+  li{margin-bottom:3px}
+  footer{margin-top:40px;padding-top:12px;border-top:1px solid #e5e7eb;text-align:center;font-size:12px;color:#57606a}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>How to Trade Only the Highest-Momentum Setups</h1>
+<p class="muted">Data-driven filter analysis · 490 real trades · 365-day Angel One live data · NIFTY + BANKNIFTY</p>
+
+
+<div class="section">
+<h2>The Fundamental Problem — What the Data Actually Shows</h2>
+
+<div class="insight alert">
+<b>High ADX does NOT mean better trades. This is the counter-intuitive core discovery.</b>
+The typical assumption — "higher ADX = stronger trend = better WR" — is WRONG for this strategy.
+</div>
+
+<div class="kpi-row">
+  <div class="kpi"><div class="kpi-val neg">34%</div><div class="kpi-lbl">NIFTY WR, ADX 20–25</div></div>
+  <div class="kpi"><div class="kpi-val neg">25%</div><div class="kpi-lbl">NIFTY WR, ADX 25–30</div></div>
+  <div class="kpi"><div class="kpi-val neg">32%</div><div class="kpi-lbl">NIFTY WR, ADX 30–35</div></div>
+  <div class="kpi"><div class="kpi-val neg">37%</div><div class="kpi-lbl">NIFTY WR, ADX 35–40</div></div>
+</div>
+<div class="kpi-row">
+  <div class="kpi"><div class="kpi-val pos">+841</div><div class="kpi-lbl">NIFTY Net, ADX 20–25 (91 trades)</div></div>
+  <div class="kpi"><div class="kpi-val neg">−914</div><div class="kpi-lbl">NIFTY Net, ADX 25–30 (56 trades)</div></div>
+  <div class="kpi"><div class="kpi-val neg">−77</div><div class="kpi-lbl">NIFTY Net, ADX 30–35 (38 trades)</div></div>
+  <div class="kpi"><div class="kpi-val pos">+219</div><div class="kpi-lbl">NIFTY Net, ADX 35–40 (35 trades)</div></div>
+</div>
+
+<div class="insight warn">
+<b>Why does ADX 25–30 lose the most (−914 pts)?</b>
+This is the "trap zone" — market just broke out of ranging (ADX crossed 20), Supertrend flips, RSI enters the buy band.
+But ADX 25–30 means the trend is <em>early and fragile</em>. It is also the zone where most false Supertrend flips occur
+(classic Type-C near-entry reversals). The STR trail is still narrow. One pullback = SL hit at tiny profit or loss.
+</div>
+
+<div class="insight good">
+<b>BANKNIFTY shows the same pattern — even more extreme:</b>
+ADX 20–25 (119 trades) = +4,389 pts. ADX 25–35 (98 trades) = −1,179 pts.
+The EOD winners don't care about "high ADX" — their avg ADX = 27.4. The SL losers avg ADX = 27.8. Essentially identical.
+<strong>ADX alone is not a momentum quality filter for this strategy.</strong>
+</div>
+</div>
+
+
+<div class="section">
+<h2>What Actually Separates Winners from Losers</h2>
+
+<h3>Finding 1 — Entry ST Gap is the Single Most Powerful Filter</h3>
+<div class="insight good">
+<b>The Supertrend-to-price gap at entry is a near-perfect separator for NIFTY:</b>
+</div>
+
+<table>
+  <thead>
+    <tr><th>NIFTY ST Gap at Entry</th><th>Trades</th><th>Win Rate</th><th>Net Pts</th><th>Avg Pts</th><th>Verdict</th></tr>
+  </thead>
+  <tbody>
+    <tr class="hilight"><td>0–10 pts</td><td>27</td><td>44%</td><td class="pos">+138</td><td class="pos">+5.1</td><td><span class="badge b-hi">Keep</span></td></tr>
+    <tr class="hilight"><td>10–20 pts</td><td>31</td><td>55%</td><td class="pos">+197</td><td class="pos">+6.3</td><td><span class="badge b-hi">Best zone</span></td></tr>
+    <tr><td>20–30 pts</td><td>17</td><td>35%</td><td class="pos">+19</td><td class="pos">+1.1</td><td><span class="badge b-mid">Marginal</span></td></tr>
+    <tr><td>30–40 pts</td><td>34</td><td>32%</td><td class="neg">−158</td><td class="neg">−4.6</td><td><span class="badge b-lo">Weak</span></td></tr>
+    <tr class="danger"><td><strong>40–50 pts (SL-cap zone)</strong></td><td><strong>91</strong></td><td class="neg"><strong>8%</strong></td><td class="neg"><strong>−2,886</strong></td><td class="neg"><strong>−31.7</strong></td><td><span class="badge b-lo">Disaster zone</span></td></tr>
+    <tr class="eod"><td>50+ pts (trail already built)</td><td>20</td><td>100%</td><td class="pos">+2,762</td><td class="pos">+138.1</td><td><span class="badge b-hi">All winners</span></td></tr>
+  </tbody>
+</table>
+
+<div class="insight alert">
+<b>The 40–50 pt gap zone is where 91 NIFTY trades live — 8% WR, −2,886 pts.</b>
+These are entries where ST band is 40–50 pts wide at entry (near the 45-pt hard SL cap).
+The SL is so close to the hard cap that <em>any normal retracement = full −45 pt loss</em>.
+This single zone accounts for the majority of NIFTY's losses over 365 days.
+<br /><br />
+The 50+ gap trades (ST already trailed up, trade entered mid-trend) = 100% WR, avg +138 pts.
+This confirms: entering <em>after</em> the ST has moved away from entry = much safer entry.
+</div>
+
+<table>
+  <thead>
+    <tr><th>BANKNIFTY ST Gap at Entry</th><th>Trades</th><th>Win Rate</th><th>Net Pts</th><th>Avg Pts</th><th>Verdict</th></tr>
+  </thead>
+  <tbody>
+    <tr class="hilight"><td>0–30 pts</td><td>35</td><td class="pos">69%</td><td class="pos">+1,935</td><td class="pos">+55.3</td><td><span class="badge b-hi">Best zone</span></td></tr>
+    <tr class="hilight"><td>30–60 pts</td><td>33</td><td class="pos">55%</td><td class="pos">+894</td><td class="pos">+27.1</td><td><span class="badge b-hi">Keep</span></td></tr>
+    <tr><td>60–90 pts</td><td>49</td><td>27%</td><td class="neg">−1,428</td><td class="neg">−29.1</td><td><span class="badge b-lo">Weak</span></td></tr>
+    <tr class="danger"><td><strong>90–120 pts (near SL cap)</strong></td><td><strong>70</strong></td><td class="neg"><strong>13%</strong></td><td class="neg"><strong>−4,640</strong></td><td class="neg"><strong>−66.3</strong></td><td><span class="badge b-lo">Worst zone</span></td></tr>
+    <tr><td>120–150 pts</td><td>33</td><td>30%</td><td class="neg">−530</td><td class="neg">−16.1</td><td><span class="badge b-lo">Weak</span></td></tr>
+    <tr class="eod"><td>180+ pts (trail built)</td><td>30</td><td class="pos">73%</td><td class="pos">+7,903</td><td class="pos">+263.4</td><td><span class="badge b-hi">All strong</span></td></tr>
+  </tbody>
+</table>
+
+<div class="insight alert">
+<b>BNKN 90–120 pt gap zone: 70 trades, 13% WR, −4,640 pts.</b>
+Same pattern as NIFTY: entries near the 2×ATR hard cap are structurally bad.
+The gap is too wide for normal retracement tolerance but not wide enough for trail protection.
+This is the "dead zone" between narrow-gap safe entries and wide-gap trend-momentum entries.
+</div>
+
+<h3>Finding 2 — RSI Zone Matters More Than ADX for Quality</h3>
+
+<div class="two-col">
+<div>
+<table>
+  <thead><tr><th>NIFTY RSI at Entry</th><th>Trades</th><th>WR</th><th>Net Pts</th></tr></thead>
+  <tbody>
+    <tr class="hilight"><td>27–30</td><td>8</td><td class="pos">50%</td><td class="pos">+213</td></tr>
+    <tr class="hilight"><td>30–33</td><td>17</td><td class="pos">41%</td><td class="pos">+223</td></tr>
+    <tr class="hilight"><td>33–36</td><td>20</td><td class="pos">40%</td><td class="pos">+25</td></tr>
+    <tr class="hilight"><td>36–39</td><td>17</td><td class="pos">53%</td><td class="pos">+790</td></tr>
+    <tr><td>39–42</td><td>32</td><td>28%</td><td class="neg">−453</td></tr>
+    <tr><td>42–45</td><td>22</td><td>27%</td><td class="neg">−271</td></tr>
+    <tr class="danger"><td><strong>45–48</strong></td><td><strong>15</strong></td><td class="neg"><strong>13%</strong></td><td class="neg"><strong>−312</strong></td></tr>
+    <tr><td>54–57 (BUY band)</td><td>62</td><td>31%</td><td class="neg">−145</td></tr>
+  </tbody>
+</table>
+<p class="muted" style="margin-top:4px">NIFTY: SELL RSI 25–42 is strong. RSI 45–48 is worst. BUY RSI 53–57 near-break-even.</p>
+</div>
+<div>
+<table>
+  <thead><tr><th>BANKNIFTY RSI at Entry</th><th>Trades</th><th>WR</th><th>Net Pts</th></tr></thead>
+  <tbody>
+    <tr class="hilight"><td>30–35</td><td>36</td><td class="pos">39%</td><td class="pos">+1,399</td></tr>
+    <tr class="hilight"><td>35–40</td><td>48</td><td class="pos">44%</td><td class="pos">+2,302</td></tr>
+    <tr class="danger"><td><strong>40–45</strong></td><td><strong>30</strong></td><td class="neg"><strong>20%</strong></td><td class="neg"><strong>−1,562</strong></td></tr>
+    <tr class="danger"><td><strong>45–50</strong></td><td><strong>19</strong></td><td class="neg"><strong>21%</strong></td><td class="neg"><strong>−1,331</strong></td></tr>
+    <tr><td>50–55</td><td>19</td><td>37%</td><td class="neg">−262</td></tr>
+    <tr class="hilight"><td>55–60 (BUY band)</td><td>105</td><td class="pos">39%</td><td class="pos">+2,335</td></tr>
+  </tbody>
+</table>
+<p class="muted" style="margin-top:4px">BNKN: RSI 40–50 is the worst zone (−2,893 pts combined). SELL RSI 30–40 is strong. BUY RSI 55–60 good.</p>
+</div>
+</div>
+
+<div class="insight warn">
+<b>NIFTY RSI 45–48 (13% WR, −312 pts on 15 trades) is a clear bad zone to identify:</b>
+This is the "no man's land" — too high for a clean SELL signal, too low for genuine BUY momentum.
+Likely these are failed BUY setups where RSI slipped back from 53+, or SELL signals in low-RSI recovery bounce.
+BNKN RSI 40–50 is the equivalent dead zone: −2,893 pts on 49 trades, 20–21% WR.
+</div>
+
+<h3>Finding 3 — Entry Time Slot: BNKN 12:00 Slot is Exceptional</h3>
+
+<table>
+  <thead>
+    <tr><th>Entry Slot</th><th>Symbol</th><th>Side</th><th>Trades</th><th>WR</th><th>Net Pts</th><th>Avg</th><th>EOD Wins</th></tr>
+  </thead>
+  <tbody>
+    <tr class="danger"><td>09:30–10:00</td><td>NIFTY</td><td>BUY</td><td>9</td><td class="neg">22%</td><td class="neg">−49</td><td class="neg">−5.4</td><td>0</td></tr>
+    <tr class="danger"><td>09:30–10:00</td><td>BNKN</td><td>BUY+SELL</td><td>91</td><td class="neg">32%</td><td class="neg">−1,305</td><td class="neg">−14.3</td><td>11</td></tr>
+    <tr><td>11:30–12:00</td><td>BNKN</td><td>BUY</td><td>57</td><td>40%</td><td class="pos">+247</td><td class="pos">+4.3</td><td>14</td></tr>
+    <tr><td>11:30–12:00</td><td>BNKN</td><td>SELL</td><td>41</td><td>32%</td><td class="neg">−39</td><td class="neg">−1.0</td><td>10</td></tr>
+    <tr class="eod"><td><strong>12:00–12:30</strong></td><td><strong>BNKN</strong></td><td><strong>BUY</strong></td><td><strong>14</strong></td><td class="pos"><strong>50%</strong></td><td class="pos"><strong>+918</strong></td><td class="pos"><strong>+65.6</strong></td><td><strong>7</strong></td></tr>
+    <tr class="eod"><td><strong>12:00–12:30</strong></td><td><strong>BNKN</strong></td><td><strong>SELL</strong></td><td><strong>25</strong></td><td class="pos"><strong>44%</strong></td><td class="pos"><strong>+1,754</strong></td><td class="pos"><strong>+70.1</strong></td><td><strong>9</strong></td></tr>
+    <tr class="hilight"><td>12:30–13:00</td><td>BNKN</td><td>BUY</td><td>17</td><td>35%</td><td class="pos">+896</td><td class="pos">+52.7</td><td>8</td></tr>
+    <tr class="hilight"><td>12:30–13:00</td><td>BNKN</td><td>SELL</td><td>21</td><td>38%</td><td class="pos">+540</td><td class="pos">+25.7</td><td>9</td></tr>
+    <tr class="danger"><td>13:00+</td><td>BNKN</td><td>Both</td><td>4</td><td class="neg">0%</td><td class="neg">−339</td><td class="neg">−84.5</td><td>1</td></tr>
+  </tbody>
+</table>
+
+<div class="insight good">
+<b>BNKN 12:00–13:00 slot: 77 trades combined, avg +55 pts — the afternoon setup window is gold.</b>
+The existing BNKN dead zone (10:00–11:30) correctly blocks the worst morning chop. 
+The 11:30–12:00 BNKN slot is marginal but acceptable (+4.3 avg BUY, −1.0 avg SELL).
+The 12:00–13:00 BNKN entries are genuinely high quality — post-midday trend confirmation.
+</div>
+
+<h3>Finding 4 — EOD Winners Profile: ADX Doesn't Predict, Hold Duration Does</h3>
+
+<table>
+  <thead>
+    <tr><th>Trade Type</th><th>Count</th><th>Avg ADX</th><th>Avg RSI</th><th>Avg Hold (min)</th><th>Insight</th></tr>
+  </thead>
+  <tbody>
+    <tr class="eod"><td><strong>EOD Winners</strong></td><td>103</td><td>27.4</td><td>46.3</td><td class="pos"><strong>221 min</strong></td><td>These ran 3.7 hours on average</td></tr>
+    <tr><td>EOD Losers</td><td>19</td><td>25.7</td><td>46.5</td><td>221 min</td><td>Same hold — bad timing/direction</td></tr>
+    <tr><td>SL Winners (trail locked)</td><td>67</td><td>28.9</td><td>43.1</td><td>121 min</td><td>Shorter hold, trailed well</td></tr>
+    <tr class="danger"><td><strong>SL Losers</strong></td><td>301</td><td>27.8</td><td>45.6</td><td class="neg"><strong>62 min</strong></td><td>Reversed in &lt;1 hour — bad entries</td></tr>
+  </tbody>
+</table>
+
+<div class="insight">
+<b>Key: ADX of winners (27.4) vs losers (27.8) is nearly identical — ADX cannot separate them.</b>
+What separates them is <em>hold time</em>: losers reverse in 62 min avg, winners survive 221 min.
+This means the strategy already has the right framework. The problem is WHICH entries to take, not how long to hold.
+</div>
+</div>
+
+
+<div class="section">
+<h2>The 5 Filters to Trade Only High-Momentum Setups</h2>
+
+<div class="filter-card">
+  <h4>Filter 1: ST Gap Must Be &lt;40 pts (NIFTY) / &lt;90 pts (BNKN) <span class="verdict v-add">IMPLEMENT</span></h4>
+  <p><strong>Rule:</strong> At entry, if <code>abs(entry_price − st_value) &gt;= 40</code> (NIFTY) or <code>&gt;= 90</code> (BNKN), skip the trade.</p>
+  <p style="margin-top:6px"><strong>Why:</strong> NIFTY 40–50pt gap zone = 91 trades at 8% WR, −2,886 pts. BNKN 90–120pt gap = 70 trades at 13% WR, −4,640 pts. These trades have ST so far from price that the hard SL cap is immediately active — any retracement = full loss.</p>
+  <table style="margin-top:8px">
+    <thead><tr><th>Symbol</th><th>Trades Rejected</th><th>Winners Lost</th><th>Losers Saved</th><th>Est. Net Benefit</th></tr></thead>
+    <tbody>
+      <tr><td>NIFTY (gap &gt;= 40)</td><td>91</td><td>7 (all trail wins anyway)</td><td>84</td><td class="pos">+2,600+ pts</td></tr>
+      <tr><td>BNKN (gap &gt;= 90)</td><td>103 (90–150pt range)</td><td>~16</td><td>~87</td><td class="pos">+4,800+ pts</td></tr>
+    </tbody>
+  </table>
+  <p style="margin-top:6px;color:#57606a;font-size:12px">Config: <code>ST_GAP_MAX = {"NIFTY": 40, "BANKNIFTY": 90}</code> — add to config.py, check in backtester before entry.</p>
+</div>
+
+<div class="filter-card">
+  <h4>Filter 2: Block NIFTY RSI 45–52 Zone <span class="verdict v-add">IMPLEMENT</span></h4>
+  <p><strong>Rule:</strong> For NIFTY, block all entries where RSI is in 45–52 (the no-man's land between SELL and BUY bands).</p>
+  <p style="margin-top:6px"><strong>Why:</strong> RSI 45–48 = 13% WR, −312 pts on 15 trades. RSI 48–51 = 33% WR but only +18 pts (breakeven noise). This RSI zone generates signals where the market is neither trending down (clean SELL) nor surging up (clean BUY). It's the chop zone where Supertrend flips are most unreliable.</p>
+  <p style="margin-top:6px"><strong>Already partially addressed:</strong> Current config has <code>RSI_BUY_LOW = 53</code> and <code>RSI_SELL_HIGH = 55</code>, leaving a gap. The data confirms this gap is correctly excluded for BUY. But SELL signals at RSI 45–52 are still firing — and they lose.</p>
+  <p style="margin-top:6px;color:#57606a;font-size:12px">Config change: lower <code>RSI_SELL_HIGH = 55</code> → <code>RSI_SELL_HIGH = 45</code> for NIFTY. Test impact on 90d + 365d.</p>
+</div>
+
+<div class="filter-card">
+  <h4>Filter 3: BNKN RSI 40–50 Dead Zone Block <span class="verdict v-test">TEST</span></h4>
+  <p><strong>Rule:</strong> For BANKNIFTY, block SELL entries where RSI is 40–50.</p>
+  <p style="margin-top:6px"><strong>Why:</strong> RSI 40–45 = 20% WR, −1,562 pts (30 trades). RSI 45–50 = 21% WR, −1,331 pts (19 trades). Combined: 49 trades, −2,893 pts, 20.4% WR. These are SELL signals that fire when RSI is middling — not oversold enough for genuine selling pressure. The current SELL RSI cap of 55 allows these in.</p>
+  <p style="margin-top:6px;color:#57606a;font-size:12px">Config: Add <code>RSI_SELL_HIGH_BANKNIFTY = 40</code> (analogous to <code>RSI_BUY_HIGH_BANKNIFTY</code>). Or lower <code>RSI_SELL_HIGH</code> globally to 40 and test impact.</p>
+</div>
+
+<div class="filter-card">
+  <h4>Filter 4: Weekly Trend Filter for BUY Direction <span class="verdict v-test">TEST</span></h4>
+  <p><strong>Rule:</strong> Block BUY entries when the Nifty 50 weekly close is below its 10-week EMA. Allow SELL freely.</p>
+  <p style="margin-top:6px"><strong>Why:</strong> NIFTY BUY at 365d = −101 pts on 72 trades (30.6% WR). Monthly data shows Aug 2025–Mar 2026 had sustained BUY losses: Nov −311 pts, Mar −244 pts, Jan −141 pts, Sep −196 pts. All bear-market months. A weekly EMA filter would have blocked most BUY entries during this entire 8-month stretch, preserving the SELL edge while avoiding counter-trend longs.</p>
+  <p style="margin-top:6px;color:#57606a;font-size:12px">Requires fetching weekly candles for Nifty 50. Add <code>WEEKLY_TREND_FILTER = True</code> and <code>WEEKLY_EMA_PERIOD = 10</code> to config. Compute on each trading day from weekly close data.</p>
+</div>
+
+<div class="filter-card">
+  <h4>Filter 5: No New Entries When BNKN Entry is at ADX 25–30 AND RSI 40–50 Simultaneously <span class="verdict v-test">TEST</span></h4>
+  <p><strong>Rule:</strong> Composite block — skip BNKN entries where <em>both</em> ADX is 25–30 AND RSI is 40–50.</p>
+  <p style="margin-top:6px"><strong>Why:</strong> BNKN ADX 25–30 alone = −572 pts. BNKN RSI 40–50 alone = −2,893 pts. The intersection is where "early weak trend + neutral RSI" combine — signals that look valid on all 5 filters but have no real momentum conviction. This would be a hard gate without needing any new infrastructure.</p>
+  <p style="margin-top:6px;color:#57606a;font-size:12px">Add to <code>eval_entry_signal()</code>: if symbol=="BANKNIFTY" and 25 &lt;= adx &lt;= 30 and 40 &lt;= rsi &lt;= 50: return SIGNAL_NONE.</p>
+</div>
+</div>
+
+
+<div class="section">
+<h2>Implementation Roadmap — In Order of Impact</h2>
+
+<table>
+  <thead>
+    <tr><th>#</th><th>Filter</th><th>NIFTY Est.</th><th>BNKN Est.</th><th>Trades Removed</th><th>Risk</th><th>Action</th></tr>
+  </thead>
+  <tbody>
+    <tr class="hilight"><td><strong>1</strong></td><td><strong>ST Gap Max (NIFTY &lt;40 / BNKN &lt;90)</strong></td><td class="pos">+2,600</td><td class="pos">+4,800</td><td>~194 bad trades</td><td class="pos">Low — loses few winners</td><td>Implement first</td></tr>
+    <tr class="hilight"><td><strong>2</strong></td><td><strong>BNKN RSI SELL high → 40</strong></td><td>—</td><td class="pos">+2,600</td><td>~49 trades</td><td class="neutral">Medium — test on both periods</td><td>Implement second</td></tr>
+    <tr><td>3</td><td>NIFTY RSI SELL high → 45</td><td class="pos">+300?</td><td>—</td><td>~15–20 trades</td><td class="neutral">Medium — small N</td><td>Test third</td></tr>
+    <tr><td>4</td><td>Weekly BUY trend filter</td><td class="pos">+400?</td><td class="pos">+800?</td><td>~30–50 BUY trades</td><td class="neutral">Medium — needs weekly data feed</td><td>Implement fourth</td></tr>
+    <tr><td>5</td><td>BNKN ADX+RSI combo block</td><td>—</td><td class="pos">+200?</td><td>~15–20 trades</td><td class="pos">Low — narrow condition</td><td>Test last</td></tr>
+  </tbody>
+</table>
+
+<div class="insight good">
+<b>Expected combined improvement from Filters 1+2 alone: +7,400 to +10,000 pts over 365d (combined both symbols).</b>
+Current baseline: NIFTY +70 + BNKN +2,672 = +2,742 pts combined at 365d.
+Filters 1+2 target the two biggest individual loss clusters found in the data.
+These are <em>pure loss removal</em> — no trade structure changes, no new parameters to tune.
+</div>
+
+<div class="insight">
+<b>What these filters do NOT require:</b>
+<ul>
+  <li>No profit targets (EOD exit strategy stays unchanged)</li>
+  <li>No changes to Supertrend parameters (ST 7/3.0 stays)</li>
+  <li>No changes to session times (09:40–13:00 stays)</li>
+  <li>No new data sources for Filters 1–3 (all computed from existing 5-min candles)</li>
+  <li>Only Filter 4 (weekly trend) requires a new weekly data feed call</li>
+</ul>
+</div>
+</div>
+
+
+<div class="section">
+<h2>Exact Config + Code Change for Filter 1 (ST Gap Max)</h2>
+
+<div class="filter-card">
+<h4>Step 1 — Add to config.py</h4>
+<pre style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:4px;padding:10px;font-size:12px;overflow:auto"># ST Gap filter: block entries where entry price is too far from ST line at moment of entry.
+# NIFTY: gap &gt;= 40 pts → 91 trades, 8% WR, -2,886 pts over 365d (near hard SL cap)
+# BNKN:  gap &gt;= 90 pts → 70 trades, 13% WR, -4,640 pts over 365d
+ST_GAP_MAX = {
+    "NIFTY"    : 40,   # pts — block if |entry - st_value| &gt;= this
+    "BANKNIFTY": 90,   # pts — block if |entry - st_value| &gt;= this
+}</pre>
+
+<h4 style="margin-top:12px">Step 2 — Add to eval_entry_signal() in signal_engine.py (after ADX check)</h4>
+<pre style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:4px;padding:10px;font-size:12px;overflow:auto">    # ST Gap filter — block entries where ST band is too wide at entry
+    st_gap_max = getattr(config, "ST_GAP_MAX", {}).get(symbol)
+    if st_gap_max is not None:
+        st_val_entry = float(row.get("st_value") or row.get("st") or 0)
+        st_gap = abs(close - st_val_entry)
+        if st_gap &gt;= st_gap_max:
+            return SIGNAL_NONE   # ST too far — near-cap entry, skip</pre>
+
+<h4 style="margin-top:12px">Step 3 — Run backtest and validate</h4>
+<pre style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:4px;padding:10px;font-size:12px;overflow:auto">python tests/run_backtest_report.py</pre>
+<p style="margin-top:6px;font-size:12px;color:#57606a">Expected: NIFTY 365d moves from +70 → +2,600+. BNKN 365d moves from +2,672 → +6,000+. Total trade count drops by ~194 (from 490 → ~296). Win rate should rise substantially.</p>
+</div>
+</div>
+
+<footer>Made with IBM Bob</footer>
+</div>
+</body>
+</html>

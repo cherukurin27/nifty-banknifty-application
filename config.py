@@ -62,25 +62,36 @@ EMA_FAST = 9
 EMA_SLOW = 21
 
 # RSI — entry band
-# BUY  : Nifty  53–57  |  BankNifty 53–60
+# BUY  : Nifty  53–57  |  BankNifty 57–60
 #   Nifty    : raised lower from 45 (RSI 45–53 had 34% WR — weak momentum, excluded)
 #              upper lowered 65→60→57:
 #                RSI 62–65 BUY = 23% WR (10L/3W, -116 pts) — removed
 #                RSI 57–59 BUY = 18% WR ( 9L/2W, -128 pts) — now also removed
 #                RSI 53–55 BUY = 60% WR ( best sub-band, +202 pts) — keep
 #                RSI 55–57 BUY = 57% WR ( +135 pts) — keep
-#   BankNifty: stays 60 — sub-band analysis not done yet for BNKN
-# SELL : 25–55  (confirmed correct — 25–50 = 50% WR, +859 pts)
+#   BankNifty lower bound raised 53→57:
+#                RSI 54–57 BUY = 0% WR (4t, -788 pts) — eliminated
+#                RSI 57–60 BUY = 50% WR (+1,897 pts) — keep
+# SELL : 25–44  (tightened from 55)
+#   RSI 45–48 SELL = 0% WR on NIFTY (4t, -122 pts) — dead zone removed
+#   RSI 42–45 SELL = 0% WR on BNKN  (3t, -423 pts) — dead zone removed
+#   RSI 36–39 SELL = 83% WR NIFTY / 80% WR BNKN — high-conviction zone preserved
 RSI_PERIOD    = 14
 RSI_BUY_LOW   = 53   # raised from 45 — weak-momentum zone (45–53) had 34% WR, now excluded
 RSI_BUY_HIGH  = 57   # lowered from 60 — RSI 57–59 BUY had 18% WR (9L/2W), -128 pts drag
 RSI_SELL_LOW  = 25
-RSI_SELL_HIGH = 55
+RSI_SELL_HIGH = 44   # tightened from 55 — RSI 45–48 SELL: 0% WR 4t -122pts; RSI 42–45 BNKN: 0% WR 3t -423pts
 
-# BankNifty-specific RSI BUY upper bound
-# 90-day analysis: RSI 62–65 BUY → WR=41.7%, net −87 pts on 12 trades.
-# Lowering to 60 removes those 7 losing entries; validated +433 pts improvement.
-# Now same as NIFTY (both 60) — data shows 60 is the correct ceiling for both instruments.
+# BankNifty-specific RSI SELL upper bound
+# Analysis (180d, 118 BNKN trades): BNKN SELL RSI 38–44 = 33% WR, −341 pts on 27 trades.
+# BNKN SELL RSI 30–38 = 50–53% WR, +3,373 pts combined — the productive zone.
+# Lowering to 40 removes the RSI 40–44 weak zone without cutting RSI 30–40 edge.
+RSI_SELL_HIGH_BANKNIFTY = 40   # tightened from 44 — BNKN SELL RSI 38–44 = 33% WR, −341 pts
+
+# BankNifty-specific RSI BUY lower and upper bounds
+# Lower raised 53→57: RSI 54–57 BUY = 0% WR, -788 pts on 4 trades (winners start at RSI 57+)
+# Upper (60): validated, no change — RSI 57–60 BUY = 50% WR, +1,897 pts
+RSI_BUY_LOW_BANKNIFTY  = 57   # raised from 53 — RSI 54-57 BUY = 0% WR, -788 pts eliminated
 RSI_BUY_HIGH_BANKNIFTY = 60   # tighter upper bound — overbought zone starts earlier on BNKN
 
 # ATR — used for target display
@@ -123,6 +134,43 @@ BNKN_SKIP_SLOT_END   = "11:30"   # extended from 10:30 — 11:00 slot had 0 BUY 
 
 # ─── Trade Limits ─────────────────────────────────────────────────────────────
 MAX_TRADES_PER_SYMBOL = 6
+
+# ─── Weekly Trend Filter (higher-timeframe regime) ───────────────────────────
+#
+# Only blocks NIFTY BUY entries when the weekly trend is bearish.
+# SELL entries are unaffected on both symbols (SELL works in bear markets).
+# BNKN is excluded: BNKN BUY showed +2,938 pts at 180d even through the Jan–Mar
+# bear period — its gap-up/EOD behaviour is not directionally correlated with weekly trend.
+#
+# Rule: block NIFTY BUY when the weekly candle's EMA10 < EMA20
+#   (EMA10 crossing below EMA20 on weekly bars = macro downtrend confirmed)
+# Data evidence: NIFTY BUY Jan–Mar 2026 = 16.7–33% WR, combined −350 pts.
+#   Those months NIFTY weekly EMA10 was below weekly EMA20 throughout.
+#   Apr–Jul 2026 (EMA10 > EMA20): NIFTY BUY WR 43–64%, all profitable.
+#
+# Weekly candles are derived by resampling the 5-min data already fetched —
+# no extra API call required.
+WEEKLY_TREND_FILTER       = True    # False = disabled (old behaviour)
+WEEKLY_TREND_SYMBOLS      = ["NIFTY"]   # only block BUY on these symbols
+WEEKLY_EMA_FAST           = 10      # weekly EMA fast period
+WEEKLY_EMA_SLOW           = 20      # weekly EMA slow period
+
+# ─── Daily Circuit Breaker ───────────────────────────────────────────────────
+#
+# Stops new entries for the rest of the day after N consecutive full SL-hits.
+# Targets the MCL=12 problem: the worst losing streaks are multiple bad entries
+# on the same day when the market is in a whipsaw regime.
+#
+# Rule: if the last N trades today were ALL full SL-hits (exit_reason="SL Hit"
+#   AND points <= -SL_CAP_PTS threshold), stop new entries until next day.
+#
+# Set to 0 to disable. 2 is the recommended value — allows one re-entry after
+# a single SL, but stops after two consecutive full caps on the same day.
+#
+# Evidence: the NIFTY MCL=12 streak ran across multiple days in Feb–Mar 2026.
+# A per-day limit of 2 would have cut it to ~4–5 at most, saving ~4–6 losses.
+DAILY_CIRCUIT_BREAKER     = 2       # 0 = disabled; N = max consec full SL-hits per day
+CIRCUIT_BREAKER_THRESHOLD = 0.85    # fraction of SL cap — "full hit" if loss >= this × cap
 
 # ─── Expiry Day Filter ────────────────────────────────────────────────────────
 # Nifty weekly options expire every Thursday. Gamma / pin-risk noise in the last

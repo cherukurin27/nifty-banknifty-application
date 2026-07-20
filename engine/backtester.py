@@ -38,7 +38,7 @@ import numpy as np
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 import config
-from engine.indicators import add_indicators
+from engine.indicators import add_indicators, weekly_trend_buy_ok
 from engine.signal_engine import (SIGNAL_BUY, SIGNAL_SELL, SIGNAL_NONE,
                                    eval_entry_signal, _bnkn_skip_slot,
                                    _nifty_buy_skip_slot, _rsi_buy_high)
@@ -91,11 +91,19 @@ def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.D
     df_ind  = add_indicators(df_full.copy())
     df_ind["symbol"] = symbol   # so eval_entry_signal can apply symbol-specific overrides
 
+    # ── Pre-compute weekly trend filter for this symbol (once, outside loop) ──
+    weekly_buy_ok_series = weekly_trend_buy_ok(df_ind, symbol)
+
     trades      = []
     diag_rows   = []
     open_trade  = None
     pending_rev = None
     prev_date   = None
+    # ── Circuit breaker state (resets each day) ───────────────────────────────
+    cb_limit         = int(getattr(config, "DAILY_CIRCUIT_BREAKER", 0))
+    cb_threshold_pct = float(getattr(config, "CIRCUIT_BREAKER_THRESHOLD", 0.85))
+    day_consec_full_sl = 0   # consecutive full SL-hits today
+    circuit_blown      = False  # True = no new entries for rest of day
     # SL cap resolution:
     #   Nifty        : fixed pts from SL_CAP_PTS
     #   BankNifty    : dynamic 2×ATR (ATR_SL_MULT_BANKNIFTY)
@@ -123,13 +131,15 @@ def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.D
         st_val   = float(row.get("st_value") or 0)
         st_sig   = int(row.get("st_signal")  or 0)
 
-        # ── new day: close any carried-over trade at open ─────────────────────
+        # ── new day: reset circuit breaker + close any carried-over trade ─────
         if cdate != prev_date:
             if open_trade is not None:
                 _close(trades, open_trade, cdt, close, "Day Change")
                 open_trade = None
-            pending_rev = None
-            prev_date   = cdate
+            pending_rev        = None
+            prev_date          = cdate
+            day_consec_full_sl = 0
+            circuit_blown      = False
 
         # Stamp prev_st_signal onto row dict for eval_entry_signal ST confirm check
         prev_st_sig = int(df_ind.iloc[i - 1].get("st_signal") or 0)
@@ -181,7 +191,18 @@ def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.D
             sl_hit = ((direction == SIGNAL_BUY  and low  <= sl_frozen) or
                       (direction == SIGNAL_SELL and high >= sl_frozen))
             if sl_hit:
-                _close(trades, open_trade, cdt, sl_frozen, "SL Hit")
+                closed_pts = _close(trades, open_trade, cdt, sl_frozen, "SL Hit")
+                # ── circuit breaker update ────────────────────────────────────
+                if cb_limit > 0:
+                    cap_now = (round(atr_val * atr_cap_mult, 2)
+                               if atr_cap_mult is not None and atr_val else fixed_cap) or 9999
+                    loss = abs(closed_pts)
+                    if closed_pts < 0 and loss >= cb_threshold_pct * cap_now:
+                        day_consec_full_sl += 1
+                        if day_consec_full_sl >= cb_limit:
+                            circuit_blown = True
+                    else:
+                        day_consec_full_sl = 0   # non-full-hit resets the streak
                 open_trade = None; pending_rev = None
                 continue
 
@@ -216,12 +237,25 @@ def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.D
             # ── 7. Reverse signal — 2-candle confirmation (Option B) ──────────
             reverse = SIGNAL_SELL if direction == SIGNAL_BUY else SIGNAL_BUY
             if pending_rev == reverse and sig_label == reverse:
-                _close(trades, open_trade, cdt, close, "Reverse Signal")
+                closed_pts = _close(trades, open_trade, cdt, close, "Reverse Signal")
+                # ── circuit breaker update after reverse-signal close ─────────
+                if cb_limit > 0:
+                    cap_now = (round(atr_val * atr_cap_mult, 2)
+                               if atr_cap_mult is not None and atr_val else fixed_cap) or 9999
+                    if closed_pts < 0 and abs(closed_pts) >= cb_threshold_pct * cap_now:
+                        day_consec_full_sl += 1
+                        if day_consec_full_sl >= cb_limit:
+                            circuit_blown = True
+                    else:
+                        day_consec_full_sl = 0
                 open_trade = None; pending_rev = None
                 if (cdt_n.time() <= _no_new_entry_time()
+                        and not circuit_blown
                         and not _is_expiry_skip(symbol, cdate)
                         and not _bnkn_slot_skip(symbol, cdt_n.time())
-                        and not _nifty_buy_slot_skip(symbol, sig_label, cdt_n.time())):
+                        and not _nifty_buy_slot_skip(symbol, sig_label, cdt_n.time())
+                        and not (sig_label == SIGNAL_BUY
+                                 and not bool(weekly_buy_ok_series.iloc[i]))):
                     open_trade = _open(symbol, cdate, cdt, close, sig_label,
                                        st_val, atr_val, rsi_now, adx_val, vwap_val,
                                        fixed_cap, atr_cap_mult)
@@ -236,9 +270,12 @@ def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.D
             if cdt_n >= force_exit_dt(cdate):                              continue
             if cdt_n.time() > _no_new_entry_time():                        continue
             if cdt_n.time() < datetime.time(9, 40):                        continue
+            if circuit_blown:                                               continue
             if _is_expiry_skip(symbol, cdate):                             continue
             if _bnkn_slot_skip(symbol, cdt_n.time()):                      continue
             if _nifty_buy_slot_skip(symbol, sig_label, cdt_n.time()):      continue
+            if (sig_label == SIGNAL_BUY
+                    and not bool(weekly_buy_ok_series.iloc[i])):            continue
 
             if sig_label != SIGNAL_NONE:
                 open_trade  = _open(symbol, cdate, cdt, close, sig_label,
@@ -297,7 +334,7 @@ def _open(symbol, cdate, cdt, close, direction, st_val, atr_val,
     }
 
 
-def _close(trades: list, trade: dict, cdt, exit_px: float, reason: str):
+def _close(trades: list, trade: dict, cdt, exit_px: float, reason: str) -> float:
     direction = trade["direction"]
     exit_px   = round(exit_px, 2)
     pts       = round((exit_px - trade["entry_price"]) if direction == SIGNAL_BUY
@@ -320,6 +357,7 @@ def _close(trades: list, trade: dict, cdt, exit_px: float, reason: str):
         "adx"        : trade.get("adx", 0),
         "vwap"       : trade.get("vwap", 0),
     })
+    return pts
 
 
 # ─── summary stats ────────────────────────────────────────────────────────────

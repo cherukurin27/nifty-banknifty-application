@@ -1372,3 +1372,142 @@
 [I 260719 19:38:03 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
 [D 260719 19:38:03 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
 [I 260719 19:38:03 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 19:39:03 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 19:39:03 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 19:39:03 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 19:39:03 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260719 19:40:03 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 19:40:03 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260719 19:40:03 data_feed:76] Chunk 2026-07-18 – 2026-07-19: 1 candles
+[I 260719 19:40:03 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[I 260719 19:59:22 smartConnect:124] in pool
+[I 260720 06:54:18 smartConnect:124] in pool
+[I 260720 07:01:09 smartConnect:124] in pool
+[I 260720 07:11:11 smartConnect:124] in pool
+[I 260720 07:11:50 smartConnect:124] in pool
+[I 260720 07:56:48 smartConnect:124] in pool
+[I 260720 08:00:30 smartConnect:124] in pool
+[I 260720 08:14:29 smartConnect:124] in pool
+[I 260720 08:32:31 smartConnect:124] in pool
+[I 260720 08:35:07 smartConnect:124] in pool
+[I 260720 08:39:39 smartConnect:124] in pool
+[I 260720 08:41:19 smartConnect:124] in pool
+[I 260720 08:50:53 smartConnect:124] in pool
+[D 260720 08:57:28 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 08:57:28 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260720 08:57:29 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 08:57:29 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260720 08:58:28 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 08:58:28 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260720 08:58:32 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 08:58:32 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260720 08:59:29 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 08:59:29 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260720 08:59:30 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 08:59:30 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260720 09:00:30 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:00:30 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260720 09:00:31 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:00:31 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260720 09:01:31 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:01:31 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260720 09:01:32 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:01:32 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260720 09:02:32 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:02:32 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260720 09:02:32 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:02:32 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260720 09:03:33 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:03:33 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260720 09:03:33 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:03:33 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260720 09:04:34 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:04:34 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260720 09:04:34 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:04:34 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[I 260720 09:05:27 smartConnect:124] in pool
+[D 260720 09:05:35 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:05:35 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260720 09:05:35 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:05:35 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260720 09:06:36 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:06:36 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260720 09:06:36 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:06:36 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260720 09:07:37 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:07:37 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260720 09:07:37 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:07:37 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260720 09:08:38 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:08:38 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260720 09:08:38 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:08:38 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260720 09:09:39 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:09:39 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260720 09:09:39 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:09:39 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260720 09:10:40 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:10:40 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260720 09:10:41 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:10:41 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260720 09:11:41 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:11:41 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260720 09:11:41 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:11:41 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260720 09:12:42 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:12:42 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260720 09:12:42 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:12:42 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260720 09:13:43 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:13:43 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260720 09:13:43 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:13:43 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[D 260720 09:14:44 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:14:44 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926000
+[D 260720 09:14:44 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 1 candles
+[I 260720 09:14:44 data_feed:129] fetch_candles: 1 total candles over 1 days for token 99926009
+[E 260720 09:15:52 smartConnect:221] Error occurred while making a POST request to https://apiconnect.angelone.in/rest/secure/angelbroking/historical/v1/getCandleData. Headers: {'Content-type': 'application/json', 'X-ClientLocalIP': '127.0.0.1', 'X-ClientPublicIP': '106.193.147.98', 'X-MACAddress': '1c:c1:0c:cb:3c:29', 'Accept': 'application/json', 'X-PrivateKey': 'oH2OEG3x', 'X-UserType': 'USER', 'X-SourceID': 'WEB', 'Authorization': 'Bearer eyJhbGciOiJIUzUxMiJ9.eyJ1c2VybmFtZSI6Ik40MDQ4OTkiLCJyb2xlcyI6MCwidXNlcnR5cGUiOiJVU0VSIiwidG9rZW4iOiJleUpoYkdjaU9pSlNVekkxTmlJc0luUjVjQ0k2SWtwWFZDSjkuZXlKMWMyVnlYM1I1Y0dVaU9pSmpiR2xsYm5RaUxDSjBiMnRsYmw5MGVYQmxJam9pZEhKaFpHVmZZV05qWlhOelgzUnZhMlZ1SWl3aVoyMWZhV1FpT2pFeUxDSnpiM1Z5WTJVaU9pSXpJaXdpWkdWMmFXTmxYMmxrSWpvaU5tRTFORGM1WlRVdE1qZzNaaTB6TkdRd0xUZ3pZalF0WmpZelpHWmhNV0psTURCaUlpd2lhMmxrSWpvaWRISmhaR1ZmYTJWNVgzWXlJaXdpYjIxdVpXMWhibUZuWlhKcFpDSTZNVElzSW5CeWIyUjFZM1J6SWpwN0ltUmxiV0YwSWpwN0luTjBZWFIxY3lJNkltRmpkR2wyWlNKOUxDSnRaaUk2ZXlKemRHRjBkWE1pT2lKaFkzUnBkbVVpZlgwc0ltbHpjeUk2SW5SeVlXUmxYMnh2WjJsdVgzTmxjblpwWTJVaUxDSnpkV0lpT2lKT05EQTBPRGs1SWl3aVpYaHdJam94TnpnME5qQTBNRFUwTENKdVltWWlPakUzT0RRMU1UYzBOelFzSW1saGRDSTZNVGM0TkRVeE56UTNOQ3dpYW5ScElqb2lZVE5tTjJKbU1tTXROekpsTlMwME9UazFMV0prTjJFdFpEWXdZamMxWWpKaVpqaGpJaXdpVkc5clpXNGlPaUlpZlEuSWU2MWROcWRGWFpxVnVJQzFHZmwwa2xxUU9LbUdsdDBUVk9OY0FGNlc3SHo0ZGhhTUVKSXRCZ0t1Ull2SzJJRkVZN2c5c1o3Mmd1YVo5V2U4b1RuX3QyTWhES0lCYUY2NjdQY0lyNUxLLXZFS1FkUk9FakVhVXl5TEsteURfbk16YThoa2hrMDZTdk5mRlE0a0IwTEstWml1TzlLUTk3R3VMLUtBTS1vVlZzIiwiQVBJLUtFWSI6Im9IMk9FRzN4IiwiaWF0IjoxNzg0NTE3NjU0LCJleHAiOjE3ODQ1NzIyMDB9.M4L6IsBsT-xHjeoSezWVweJoH3ruEp6EwSPoxiQXmtJx9MGG6VD2tJdzu9_95qgItO79z6JrJlwRMYyPtYyV7w'}, Request: {'exchange': 'NSE', 'symboltoken': '99926000', 'interval': 'FIVE_MINUTE', 'fromdate': '2026-07-19 09:15', 'todate': '2026-07-20 09:15'}, Response: HTTPSConnectionPool(host='apiconnect.angelone.in', port=443): Read timed out. (read timeout=7)
+[D 260720 09:16:46 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 2 candles
+[I 260720 09:16:46 data_feed:129] fetch_candles: 2 total candles over 1 days for token 99926000
+[E 260720 09:16:54 smartConnect:221] Error occurred while making a POST request to https://apiconnect.angelone.in/rest/secure/angelbroking/historical/v1/getCandleData. Headers: {'Content-type': 'application/json', 'X-ClientLocalIP': '127.0.0.1', 'X-ClientPublicIP': '106.193.147.98', 'X-MACAddress': '1c:c1:0c:cb:3c:29', 'Accept': 'application/json', 'X-PrivateKey': 'oH2OEG3x', 'X-UserType': 'USER', 'X-SourceID': 'WEB', 'Authorization': 'Bearer eyJhbGciOiJIUzUxMiJ9.eyJ1c2VybmFtZSI6Ik40MDQ4OTkiLCJyb2xlcyI6MCwidXNlcnR5cGUiOiJVU0VSIiwidG9rZW4iOiJleUpoYkdjaU9pSlNVekkxTmlJc0luUjVjQ0k2SWtwWFZDSjkuZXlKMWMyVnlYM1I1Y0dVaU9pSmpiR2xsYm5RaUxDSjBiMnRsYmw5MGVYQmxJam9pZEhKaFpHVmZZV05qWlhOelgzUnZhMlZ1SWl3aVoyMWZhV1FpT2pFeUxDSnpiM1Z5WTJVaU9pSXpJaXdpWkdWMmFXTmxYMmxrSWpvaU5tRTFORGM1WlRVdE1qZzNaaTB6TkdRd0xUZ3pZalF0WmpZelpHWmhNV0psTURCaUlpd2lhMmxrSWpvaWRISmhaR1ZmYTJWNVgzWXlJaXdpYjIxdVpXMWhibUZuWlhKcFpDSTZNVElzSW5CeWIyUjFZM1J6SWpwN0ltUmxiV0YwSWpwN0luTjBZWFIxY3lJNkltRmpkR2wyWlNKOUxDSnRaaUk2ZXlKemRHRjBkWE1pT2lKaFkzUnBkbVVpZlgwc0ltbHpjeUk2SW5SeVlXUmxYMnh2WjJsdVgzTmxjblpwWTJVaUxDSnpkV0lpT2lKT05EQTBPRGs1SWl3aVpYaHdJam94TnpnME5qQTBNRFUwTENKdVltWWlPakUzT0RRMU1UYzBOelFzSW1saGRDSTZNVGM0TkRVeE56UTNOQ3dpYW5ScElqb2lZVE5tTjJKbU1tTXROekpsTlMwME9UazFMV0prTjJFdFpEWXdZamMxWWpKaVpqaGpJaXdpVkc5clpXNGlPaUlpZlEuSWU2MWROcWRGWFpxVnVJQzFHZmwwa2xxUU9LbUdsdDBUVk9OY0FGNlc3SHo0ZGhhTUVKSXRCZ0t1Ull2SzJJRkVZN2c5c1o3Mmd1YVo5V2U4b1RuX3QyTWhES0lCYUY2NjdQY0lyNUxLLXZFS1FkUk9FakVhVXl5TEsteURfbk16YThoa2hrMDZTdk5mRlE0a0IwTEstWml1TzlLUTk3R3VMLUtBTS1vVlZzIiwiQVBJLUtFWSI6Im9IMk9FRzN4IiwiaWF0IjoxNzg0NTE3NjU0LCJleHAiOjE3ODQ1NzIyMDB9.M4L6IsBsT-xHjeoSezWVweJoH3ruEp6EwSPoxiQXmtJx9MGG6VD2tJdzu9_95qgItO79z6JrJlwRMYyPtYyV7w'}, Request: {'exchange': 'NSE', 'symboltoken': '99926009', 'interval': 'FIVE_MINUTE', 'fromdate': '2026-07-19 09:15', 'todate': '2026-07-20 09:16'}, Response: HTTPSConnectionPool(host='apiconnect.angelone.in', port=443): Read timed out. (read timeout=7)
+[D 260720 09:17:47 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 3 candles
+[I 260720 09:17:47 data_feed:129] fetch_candles: 3 total candles over 1 days for token 99926000
+[D 260720 09:17:47 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 3 candles
+[I 260720 09:17:47 data_feed:129] fetch_candles: 3 total candles over 1 days for token 99926009
+[E 260720 09:18:55 smartConnect:221] Error occurred while making a POST request to https://apiconnect.angelone.in/rest/secure/angelbroking/historical/v1/getCandleData. Headers: {'Content-type': 'application/json', 'X-ClientLocalIP': '127.0.0.1', 'X-ClientPublicIP': '106.193.147.98', 'X-MACAddress': '1c:c1:0c:cb:3c:29', 'Accept': 'application/json', 'X-PrivateKey': 'oH2OEG3x', 'X-UserType': 'USER', 'X-SourceID': 'WEB', 'Authorization': 'Bearer eyJhbGciOiJIUzUxMiJ9.eyJ1c2VybmFtZSI6Ik40MDQ4OTkiLCJyb2xlcyI6MCwidXNlcnR5cGUiOiJVU0VSIiwidG9rZW4iOiJleUpoYkdjaU9pSlNVekkxTmlJc0luUjVjQ0k2SWtwWFZDSjkuZXlKMWMyVnlYM1I1Y0dVaU9pSmpiR2xsYm5RaUxDSjBiMnRsYmw5MGVYQmxJam9pZEhKaFpHVmZZV05qWlhOelgzUnZhMlZ1SWl3aVoyMWZhV1FpT2pFeUxDSnpiM1Z5WTJVaU9pSXpJaXdpWkdWMmFXTmxYMmxrSWpvaU5tRTFORGM1WlRVdE1qZzNaaTB6TkdRd0xUZ3pZalF0WmpZelpHWmhNV0psTURCaUlpd2lhMmxrSWpvaWRISmhaR1ZmYTJWNVgzWXlJaXdpYjIxdVpXMWhibUZuWlhKcFpDSTZNVElzSW5CeWIyUjFZM1J6SWpwN0ltUmxiV0YwSWpwN0luTjBZWFIxY3lJNkltRmpkR2wyWlNKOUxDSnRaaUk2ZXlKemRHRjBkWE1pT2lKaFkzUnBkbVVpZlgwc0ltbHpjeUk2SW5SeVlXUmxYMnh2WjJsdVgzTmxjblpwWTJVaUxDSnpkV0lpT2lKT05EQTBPRGs1SWl3aVpYaHdJam94TnpnME5qQTBNRFUwTENKdVltWWlPakUzT0RRMU1UYzBOelFzSW1saGRDSTZNVGM0TkRVeE56UTNOQ3dpYW5ScElqb2lZVE5tTjJKbU1tTXROekpsTlMwME9UazFMV0prTjJFdFpEWXdZamMxWWpKaVpqaGpJaXdpVkc5clpXNGlPaUlpZlEuSWU2MWROcWRGWFpxVnVJQzFHZmwwa2xxUU9LbUdsdDBUVk9OY0FGNlc3SHo0ZGhhTUVKSXRCZ0t1Ull2SzJJRkVZN2c5c1o3Mmd1YVo5V2U4b1RuX3QyTWhES0lCYUY2NjdQY0lyNUxLLXZFS1FkUk9FakVhVXl5TEsteURfbk16YThoa2hrMDZTdk5mRlE0a0IwTEstWml1TzlLUTk3R3VMLUtBTS1vVlZzIiwiQVBJLUtFWSI6Im9IMk9FRzN4IiwiaWF0IjoxNzg0NTE3NjU0LCJleHAiOjE3ODQ1NzIyMDB9.M4L6IsBsT-xHjeoSezWVweJoH3ruEp6EwSPoxiQXmtJx9MGG6VD2tJdzu9_95qgItO79z6JrJlwRMYyPtYyV7w'}, Request: {'exchange': 'NSE', 'symboltoken': '99926000', 'interval': 'FIVE_MINUTE', 'fromdate': '2026-07-19 09:15', 'todate': '2026-07-20 09:18'}, Response: HTTPSConnectionPool(host='apiconnect.angelone.in', port=443): Read timed out. (read timeout=7)
+[D 260720 09:19:49 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 2 candles
+[I 260720 09:19:49 data_feed:129] fetch_candles: 2 total candles over 1 days for token 99926000
+[D 260720 09:20:50 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 3 candles
+[I 260720 09:20:50 data_feed:129] fetch_candles: 3 total candles over 1 days for token 99926000
+[D 260720 09:20:50 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 3 candles
+[I 260720 09:20:50 data_feed:129] fetch_candles: 3 total candles over 1 days for token 99926009
+[D 260720 09:21:45 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 3 candles
+[I 260720 09:21:45 data_feed:129] fetch_candles: 3 total candles over 1 days for token 99926000
+[I 260720 09:22:05 smartConnect:124] in pool
+[D 260720 09:23:10 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 3 candles
+[I 260720 09:23:10 data_feed:129] fetch_candles: 3 total candles over 1 days for token 99926000
+[D 260720 09:24:10 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 3 candles
+[I 260720 09:24:10 data_feed:129] fetch_candles: 3 total candles over 1 days for token 99926000
+[D 260720 09:24:10 data_feed:76] Chunk 2026-07-15 – 2026-07-20: 227 candles
+[I 260720 09:24:10 data_feed:129] fetch_candles: 227 total candles over 5 days for token 99926009
+[I 260720 09:24:51 smartConnect:124] in pool
+[I 260720 09:25:40 smartConnect:124] in pool
+[I 260720 09:27:09 smartConnect:124] in pool
+[D 260720 09:27:10 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 4 candles
+[I 260720 09:27:10 data_feed:129] fetch_candles: 4 total candles over 1 days for token 99926000
+[D 260720 09:27:10 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 4 candles
+[I 260720 09:27:10 data_feed:129] fetch_candles: 4 total candles over 1 days for token 99926009
+[D 260720 09:29:10 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 4 candles
+[I 260720 09:29:10 data_feed:129] fetch_candles: 4 total candles over 1 days for token 99926000
+[D 260720 09:29:10 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 4 candles
+[I 260720 09:29:10 data_feed:129] fetch_candles: 4 total candles over 1 days for token 99926009
+[D 260720 09:30:11 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 5 candles
+[I 260720 09:30:11 data_feed:129] fetch_candles: 5 total candles over 1 days for token 99926000
+[D 260720 09:30:12 data_feed:76] Chunk 2026-07-19 – 2026-07-20: 5 candles
+[I 260720 09:30:12 data_feed:129] fetch_candles: 5 total candles over 1 days for token 99926009
+[D 260720 09:33:14 data_feed:94] Chunk 2026-07-19 – 2026-07-20: 5 candles
+[I 260720 09:33:14 data_feed:147] fetch_candles: 5 total candles over 1 days for token 99926000
+[W 260720 09:33:15 data_feed:68] Rate limit hit (attempt 1/3) — waiting 10s …
+[D 260720 09:33:25 data_feed:94] Chunk 2026-07-19 – 2026-07-20: 5 candles
+[I 260720 09:33:25 data_feed:147] fetch_candles: 5 total candles over 1 days for token 99926009
+[I 260720 09:33:52 smartConnect:124] in pool
