@@ -87,7 +87,7 @@ RSI_PERIOD    = 14
 RSI_BUY_LOW   = 53   # raised from 45 — weak-momentum zone (45–53) had 34% WR, now excluded
 RSI_BUY_HIGH  = 57   # lowered from 60 — RSI 57–59 BUY had 18% WR (9L/2W), -128 pts drag
 RSI_SELL_LOW  = 25
-RSI_SELL_HIGH = 44   # tightened from 55 — RSI 45–48 SELL: 0% WR 4t -122pts; RSI 42–45 BNKN: 0% WR 3t -423pts
+RSI_SELL_HIGH = 44   # restored — RSI 46 test hurt NIFTY (WR 52%->46%, -296 pts); BNKN unaffected (uses own override)
 
 # BankNifty-specific RSI SELL upper bound
 # Analysis (180d, 118 BNKN trades): BNKN SELL RSI 38–44 = 33% WR, −341 pts on 27 trades.
@@ -189,7 +189,8 @@ WEEKLY_EMA_SLOW           = 20      # weekly EMA slow period
 #
 # Evidence: the NIFTY MCL=12 streak ran across multiple days in Feb–Mar 2026.
 # A per-day limit of 2 would have cut it to ~4–5 at most, saving ~4–6 losses.
-DAILY_CIRCUIT_BREAKER     = 2       # 0 = disabled; N = max consec full SL-hits per day
+DAILY_CIRCUIT_BREAKER     = 2       # restored from 1 — CB=1 cut too many NIFTY winners (WR 52%->46%, -300pts)
+                                    # CB=2 allows one re-entry which occasionally recovers; better net overall
 CIRCUIT_BREAKER_THRESHOLD = 0.85    # fraction of SL cap — "full hit" if loss >= this × cap
 
 # ─── Expiry Day Filter ────────────────────────────────────────────────────────
