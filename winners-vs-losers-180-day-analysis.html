@@ -1,0 +1,163 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Winners vs Losers Analysis</title>
+<style>
+  body { font-family: -apple-system,"Segoe UI",system-ui,sans-serif; font-size:14px; line-height:1.6; background:#fff; color:#1f2328; margin:0; padding:24px; }
+  .wrap { max-width:760px; margin:0 auto; }
+  h1 { font-size:18px; margin-bottom:4px; }
+  .sub { color:#57606a; font-size:13px; margin-bottom:24px; }
+  h2 { font-size:15px; margin:28px 0 8px; border-bottom:1px solid #e5e7eb; padding-bottom:4px; }
+  h3 { font-size:13px; margin:16px 0 6px; color:#57606a; font-weight:600; }
+  table { width:100%; border-collapse:collapse; font-size:13px; margin-bottom:12px; }
+  th { background:#f7f8fa; text-align:left; padding:7px 10px; border:1px solid #e5e7eb; color:#57606a; font-weight:600; }
+  td { padding:7px 10px; border:1px solid #e5e7eb; }
+  .good { color:#16a34a; font-weight:600; }
+  .bad  { color:#dc2626; font-weight:600; }
+  .warn { color:#d97706; font-weight:600; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:12px; font-weight:600; }
+  .badge-ok   { background:#dcfce7; color:#16a34a; }
+  .badge-err  { background:#fee2e2; color:#dc2626; }
+  .badge-warn { background:#fef3c7; color:#d97706; }
+  .box { padding:14px 16px; border-radius:6px; margin:12px 0; font-size:13px; }
+  .box-red   { background:#fef2f2; border:1px solid #fecaca; }
+  .box-green { background:#f0fdf4; border:1px solid #bbf7d0; }
+  .box-amber { background:#fffbeb; border:1px solid #fde68a; }
+  .num { font-size:22px; font-weight:700; }
+  .stat-row { display:flex; gap:16px; flex-wrap:wrap; margin:12px 0; }
+  .stat-box { flex:1; min-width:120px; background:#f7f8fa; border:1px solid #e5e7eb; border-radius:6px; padding:10px 14px; }
+  .stat-label { font-size:11px; color:#57606a; }
+  .stat-val   { font-size:18px; font-weight:700; }
+  .footer { margin-top:40px; padding-top:12px; border-top:1px solid #e5e7eb; text-align:center; font-size:12px; color:#57606a; }
+  tr.edge { background:#f0fdf4; }
+  tr.drain { background:#fef2f2; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Winners vs Losers — 180-Day Deep Analysis</h1>
+  <div class="sub">172 trades total (NIFTY 66 + BANKNIFTY 106) | Jan–Jul 2026</div>
+
+  
+  <div class="stat-row">
+    <div class="stat-box"><div class="stat-label">Total Trades</div><div class="stat-val">172</div></div>
+    <div class="stat-box"><div class="stat-label">Winners</div><div class="stat-val good">71</div></div>
+    <div class="stat-box"><div class="stat-label">Losers</div><div class="stat-val bad">101</div></div>
+    <div class="stat-box"><div class="stat-label">Overall WR</div><div class="stat-val">41.3%</div></div>
+    <div class="stat-box"><div class="stat-label">Net Points</div><div class="stat-val good">+9,988</div></div>
+  </div>
+
+  
+  <h2>The Single Biggest Insight</h2>
+  <div class="box box-amber">
+    <b>Winners hold 216 min on average. Losers exit in 82 min.</b><br />
+    The system makes money by <b>staying in winning trades</b>, not by having a high win rate.
+    Win rate is only 41% — but big wins (avg +131–397 pts) vastly outweigh small losses (avg -45–140 pts).
+  </div>
+
+  
+  <h2>Exit Reason — Where Money is Made and Lost</h2>
+  <table>
+    <tr><th>Exit Type</th><th>Trades</th><th>WR%</th><th>Net Pts</th><th>Avg Win</th><th>Avg Loss</th><th></th></tr>
+    <tr class="edge"><td><b>EOD Exit</b> (held to 15:15)</td><td>72</td><td class="good">90%</td><td class="good">+19,291</td><td>+131 to +397</td><td>−52 to −111</td><td><span class="badge badge-ok">Money maker</span></td></tr>
+    <tr class="drain"><td><b>SL Hit</b></td><td>98</td><td class="bad">3–10%</td><td class="bad">−8,572</td><td>+98</td><td>−45 to −140</td><td><span class="badge badge-err">Money drainer</span></td></tr>
+    <tr><td><b>Reverse Signal</b></td><td>2</td><td>50%</td><td>+39</td><td>+46</td><td>−7</td><td><span class="badge badge-warn">Neutral</span></td></tr>
+  </table>
+  <div class="box box-red">
+    <b>SL hits are the entire problem.</b> 98 SL hits × avg −87 pts = −8,572 pts drained.
+    EOD exits alone earn +19,291 pts. If we can convert even 20% of SL hits to EOD exits, net goes up dramatically.
+  </div>
+
+  
+  <h2>Fast Losers — "Fake Signal" Trades (the easiest to avoid)</h2>
+  <div class="box box-red">
+    <b>19 trades held &lt;30 min and hit SL = −1,502 pts total.</b><br />
+    These are signals that reversed almost immediately after entry — "fake" setups that looked valid but failed within 1–3 candles.
+  </div>
+  <table>
+    <tr><th>Symbol</th><th>Count</th><th>Net Pts</th><th>Avg Hold</th><th>Avg ADX</th><th>Entry Slots</th></tr>
+    <tr><td>NIFTY SELL</td><td>13</td><td class="bad">−585</td><td>13 min</td><td>31.7</td><td>09:30 (6), 10:30 (3), others</td></tr>
+    <tr><td>BANKNIFTY BUY</td><td>5</td><td class="bad">−846</td><td>18 min</td><td>28.3</td><td>09:30 (4), 11:30 (1)</td></tr>
+  </table>
+  <div class="box box-amber">
+    <b>Pattern:</b> Most fast losers enter at <b>09:30–10:00</b> — the opening noise window.
+    NIFTY already blocks entries before 09:40. But 09:40–10:00 is still vulnerable.
+    <br /><br />
+    <b>Fix to consider:</b> Raise NIFTY entry start from 09:40 → 10:00 for SELL trades.
+  </div>
+
+  
+  <h2>Hold Duration — The Clearest Pattern</h2>
+  <h3>NIFTY</h3>
+  <table>
+    <tr><th>Hold Time</th><th>Trades</th><th>WR%</th><th>Net Pts</th><th></th></tr>
+    <tr class="drain"><td>0–15 min</td><td>7</td><td class="bad">0%</td><td class="bad">−315</td><td><span class="badge badge-err">All losses</span></td></tr>
+    <tr class="drain"><td>15–30 min</td><td>6</td><td class="bad">0%</td><td class="bad">−270</td><td><span class="badge badge-err">All losses</span></td></tr>
+    <tr class="drain"><td>30–60 min</td><td>7</td><td class="bad">0%</td><td class="bad">−315</td><td><span class="badge badge-err">All losses</span></td></tr>
+    <tr class="drain"><td>1–2 hrs</td><td>14</td><td class="bad">0%</td><td class="bad">−630</td><td><span class="badge badge-err">All losses</span></td></tr>
+    <tr class="edge"><td>2–3 hrs</td><td>11</td><td class="good">82%</td><td class="good">+889</td><td><span class="badge badge-ok">EDGE</span></td></tr>
+    <tr class="edge"><td>3–4 hrs</td><td>12</td><td class="good">58%</td><td class="good">+587</td><td><span class="badge badge-ok">EDGE</span></td></tr>
+    <tr class="edge"><td>4–6 hrs (EOD)</td><td>9</td><td class="good">89%</td><td class="good">+1,256</td><td><span class="badge badge-ok">EDGE</span></td></tr>
+  </table>
+  <h3>BANKNIFTY</h3>
+  <table>
+    <tr><th>Hold Time</th><th>Trades</th><th>WR%</th><th>Net Pts</th><th></th></tr>
+    <tr class="drain"><td>0–60 min</td><td>28</td><td class="bad">7%</td><td class="bad">−4,219</td><td><span class="badge badge-err">Almost all losses</span></td></tr>
+    <tr class="drain"><td>1–2 hrs</td><td>17</td><td class="bad">0%</td><td class="bad">−2,055</td><td><span class="badge badge-err">All losses</span></td></tr>
+    <tr class="edge"><td>2–3 hrs</td><td>24</td><td class="good">50%</td><td class="good">+2,668</td><td><span class="badge badge-ok">Profitable</span></td></tr>
+    <tr class="edge"><td>3–4 hrs</td><td>26</td><td class="good">89%</td><td class="good">+8,172</td><td><span class="badge badge-ok">EDGE</span></td></tr>
+    <tr class="edge"><td>4–6 hrs (EOD)</td><td>11</td><td class="good">91%</td><td class="good">+4,221</td><td><span class="badge badge-ok">EDGE</span></td></tr>
+  </table>
+  <div class="box box-green">
+    <b>Key finding:</b> Any trade that lasts &lt;2 hours is almost certainly a loser.
+    Any trade that reaches 2+ hours has 50–91% win rate. <b>The system needs to hold trades longer, not exit sooner.</b>
+  </div>
+
+  
+  <h2>ADX at Entry — Surprising Result</h2>
+  <table>
+    <tr><th>ADX Range</th><th>NIFTY WR%</th><th>NIFTY Net</th><th>BNKN WR%</th><th>BNKN Net</th><th></th></tr>
+    <tr class="edge"><td>ADX 20–23</td><td class="good">57%</td><td class="good">+747</td><td>46%</td><td class="good">+3,588</td><td><span class="badge badge-ok">Best zone</span></td></tr>
+    <tr><td>ADX 23–26</td><td>43%</td><td class="good">+491</td><td>40%</td><td class="good">+2,803</td><td></td></tr>
+    <tr><td>ADX 26–33</td><td>27%</td><td class="bad">−142</td><td>54%</td><td class="good">+2,759</td><td></td></tr>
+    <tr class="drain"><td>ADX 33–38</td><td class="bad">9%</td><td class="bad">−437</td><td class="bad">33%</td><td class="bad">−608</td><td><span class="badge badge-err">Worst zone</span></td></tr>
+    <tr class="edge"><td>ADX 38–40</td><td class="good">56%</td><td class="good">+545</td><td>40%</td><td class="good">+244</td><td><span class="badge badge-ok">Recovers</span></td></tr>
+  </table>
+  <div class="box box-red">
+    <b>ADX 33–38 is a dead zone</b> — NIFTY 9% WR, −437 pts. BNKN 33% WR, −608 pts.
+    This is "overextended but not quite at cap" — trend is strong but about to exhaust.
+    <b>Fix: skip entries when ADX is between 33 and 38.</b>
+  </div>
+
+  
+  <h2>Entry Time — NIFTY vs BANKNIFTY</h2>
+  <table>
+    <tr><th>Time Slot</th><th>NIFTY SELL WR%</th><th>NIFTY Net</th><th>BNKN WR%</th><th>BNKN Net</th></tr>
+    <tr class="drain"><td>09:40–10:30</td><td class="bad">26%</td><td class="bad">+332 (misleading — wide wins mask losses)</td><td class="bad">27%</td><td class="bad">+1,611</td></tr>
+    <tr class="drain"><td>10:30–11:30</td><td class="bad">18%</td><td class="bad">−268</td><td>—</td><td>— (blocked)</td></tr>
+    <tr><td>11:30–12:00</td><td>43%</td><td class="good">+450</td><td>42%</td><td class="good">+1,797</td></tr>
+    <tr class="edge"><td>12:00–12:30</td><td class="good">55%</td><td class="good">+442</td><td class="good">61%</td><td class="good">+3,111</td></tr>
+    <tr class="edge"><td>12:30–13:00</td><td class="good">60%</td><td class="good">+247</td><td>44%</td><td class="good">+2,325</td></tr>
+  </table>
+
+  
+  <h2>Recommended Filter Improvements</h2>
+  <table>
+    <tr><th>#</th><th>Change</th><th>Expected Impact</th><th>Risk</th></tr>
+    <tr><td>1</td><td>Skip ADX 33–38 zone for both symbols</td><td class="good">Save ~1,045 pts in losses</td><td>Miss ~16 trades</td></tr>
+    <tr><td>2</td><td>Raise NIFTY SELL entry start from 09:40 → 10:00</td><td class="good">Remove 6 fast losers (−270 pts)</td><td>Miss 1–2 early winners</td></tr>
+    <tr><td>3</td><td>Do NOT add early exit logic — let trades run to EOD</td><td class="good">90% of wins are EOD exits</td><td>None</td></tr>
+    <tr><td>4</td><td>Current SL fix (max vs min) applied today</td><td class="good">Correct SL placement from tomorrow</td><td>None</td></tr>
+  </table>
+
+  <div class="box box-green">
+    <b>Bottom line:</b> The strategy works — +9,988 pts over 180 days. The losses come from
+    (1) early SL hits in the first 2 hours, mostly at open and in the ADX 33–38 zone.
+    The system's strength is <b>letting winners run to EOD</b>. Protect that, filter the bad entries.
+  </div>
+
+  <div class="footer">Made with IBM Bob</div>
+</div>
+</body>
+</html>

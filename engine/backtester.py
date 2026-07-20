@@ -141,10 +141,17 @@ def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.D
             day_consec_full_sl = 0
             circuit_blown      = False
 
-        # Stamp prev_st_signal onto row dict for eval_entry_signal ST confirm check
-        prev_st_sig = int(df_ind.iloc[i - 1].get("st_signal") or 0)
+        # Stamp st_history for per-symbol ST confirm check
+        max_confirm = max(
+            int(getattr(config, "ST_CONFIRM_CANDLES_NIFTY", config.ST_CONFIRM_CANDLES)),
+            int(config.ST_CONFIRM_CANDLES),
+        )
         row_with_prev = dict(row)
-        row_with_prev["prev_st_signal"] = prev_st_sig
+        row_with_prev["prev_st_signal"] = int(df_ind.iloc[i - 1].get("st_signal") or 0)
+        row_with_prev["st_history"] = [
+            int(df_ind.iloc[i - k].get("st_signal") or 0)
+            for k in range(1, min(max_confirm + 1, i + 1))
+        ]
 
         sig_label = eval_entry_signal(row_with_prev)
 
@@ -224,7 +231,7 @@ def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.D
                 open_trade["sl"] = max(open_trade["sl"], hard_sl)
             else:
                 hard_sl = round(entry + live_cap, 2)
-                open_trade["sl"] = min(open_trade["sl"], hard_sl)
+                open_trade["sl"] = max(open_trade["sl"], hard_sl)
 
             # ── 5. EOD force exit (± realistic slippage) ─────────────────────
             if cdt_n >= force_exit_dt(cdate):

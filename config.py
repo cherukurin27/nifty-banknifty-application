@@ -55,7 +55,14 @@ ST_MULTIPLIER = 3.0
 #   that reversed immediately (false flip). BUY wins avg hold = 188 min.
 #   Requiring 2 consecutive same-direction candles filters almost all false flips
 #   without delaying genuine trend entries by more than 1 candle (5 minutes).
-ST_CONFIRM_CANDLES = 2   # 1 = no confirmation required (old behaviour); 2 = current
+ST_CONFIRM_CANDLES = 2   # global default (BANKNIFTY: fresh flip 60% WR — keep at 2)
+
+# Per-symbol ST confirmation override
+# NIFTY 180d analysis: ST age 1–3 = 37% WR, −179 pts drain.
+#                      ST age 4–6 = 67% WR, +1,038 pts edge.
+# Waiting for 4 consecutive candles filters false flips in choppy NIFTY sessions.
+# BANKNIFTY stays at 2 — fresh flip 60% WR, delaying entry costs more than it saves.
+ST_CONFIRM_CANDLES_NIFTY = 4   # NIFTY-specific override: require 4 consecutive candles
 
 # EMA
 EMA_FAST = 9
@@ -105,8 +112,21 @@ ADX_PERIOD    = 14
 ADX_THRESHOLD = 20   # minimum: market must be trending (shared floor for BUY and SELL)
 ADX_MAX       = 40   # lowered from 60 — overextended moves (ADX>40) have poor WR
 
+# ADX dead zone: 33–38 — "overextended but not yet at cap" region
+# 180d analysis: NIFTY ADX 33–38 = 9% WR, −437 pts (11 trades)
+#                BNKN  ADX 33–38 = 33% WR, −608 pts (15 trades)
+# Trend is strong but exhausting — SL hit on first pullback almost every time.
+# Entries above ADX_MAX (40) are already blocked; this closes the 33–38 gap.
+ADX_DEAD_ZONE_LOW  = 33   # dead zone lower bound (inclusive)
+ADX_DEAD_ZONE_HIGH = 38   # dead zone upper bound (exclusive)
+
+# NIFTY SELL entry start: raised from 09:40 → 10:00
+# 180d analysis: NIFTY SELL 09:40–10:00 = 6 fast losers (hold <30 min), −270 pts drained.
+# Opening noise causes false Supertrend flips in first 30 min for SELL direction.
+NIFTY_SELL_START = "10:00"   # no NEW NIFTY SELL entries before 10:00
+
 # ─── Session Filter (IST) ────────────────────────────────────────────────────
-SESSION_START      = "09:40"   # skip opening 10-min noise
+SESSION_START      = "09:40"   # skip opening 10-min noise (SELL further restricted via NIFTY_SELL_START)
 SESSION_END        = "14:30"
 FORCE_EXIT         = "15:15"
 NO_NEW_ENTRY_AFTER = "13:00"   # lowered from 13:30 — 13:00–13:30 window WR=30% (BNKN) / 45% (Nifty)

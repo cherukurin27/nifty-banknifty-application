@@ -147,18 +147,21 @@ with tab_live:
             st.session_state.signals[sym] = sig
             ot       = st.session_state.open_trades[sym]   # may be None
 
-            # ── latest candle values ─────────────────────────────────────────
-            df_ind   = add_indicators(df.copy())
+            # ── candle values ────────────────────────────────────────────────
+            # iloc[-1] = currently forming (incomplete) candle — live price only
+            # iloc[-2] = last fully CLOSED candle — used for all SL/signal logic
+            df_ind      = add_indicators(df.copy())
             df_ind["symbol"] = sym
-            row      = df_ind.iloc[-1]
-            close    = float(row["close"])
-            high     = float(row["high"])
-            low      = float(row["low"])
-            atr_val  = float(row.get("atr") or 0)
-            st_val   = float(row.get("st_value") or 0)
-            now_dt   = strip_tz(pd.to_datetime(row["datetime"]))
-            now_time = now_dt.time()
-            now_date = now_dt.date()
+            live_row    = df_ind.iloc[-1]   # forming candle — display only
+            row         = df_ind.iloc[-2] if len(df_ind) >= 2 else live_row
+            close       = float(row["close"])
+            high        = float(row["high"])
+            low         = float(row["low"])
+            atr_val     = float(row.get("atr") or 0)
+            st_val      = float(row.get("st_value") or 0)
+            now_dt      = strip_tz(pd.to_datetime(row["datetime"]))
+            now_time    = now_dt.time()
+            now_date    = now_dt.date()
 
             # SL cap helpers (same logic as backtester)
             fixed_cap    = config.SL_CAP_PTS.get(sym)
@@ -231,7 +234,7 @@ with tab_live:
                     if direction == SIGNAL_BUY:
                         ot["sl"] = round(max(ot["sl"], entry - live_cap), 2)
                     else:
-                        ot["sl"] = round(min(ot["sl"], entry + live_cap), 2)
+                        ot["sl"] = round(max(ot["sl"], entry + live_cap), 2)
 
                     st.session_state.open_trades[sym] = ot
 
@@ -252,7 +255,7 @@ with tab_live:
                     sl     = max(sl_initial, sl_cap) if sl_initial else sl_cap
                 else:
                     sl_cap = round(entry_price + cap, 2)
-                    sl     = min(sl_initial, sl_cap) if sl_initial else sl_cap
+                    sl     = max(sl_initial, sl_cap) if sl_initial else sl_cap
 
                 ct = sig.get("candle_time")
                 if ct != st.session_state.last_alert[sym]:
@@ -384,10 +387,173 @@ with tab_live:
         </div>
         """, unsafe_allow_html=True)
 
-    def _mini_chart(df: pd.DataFrame):
-        if df.empty or len(df) < 5:
-            return
-        st.line_chart(df.tail(30)[["datetime", "close"]].set_index("datetime"), height=120, use_container_width=True)
+    def _mini_chart(df: pd.DataFrame, sym: str, sig: dict, ot: dict | None):
+        """Full candlestick chart: candles + Supertrend + EMA21 + VWAP + RSI + ADX panels."""
+        try:
+            import plotly.graph_objects as go
+            from plotly.subplots import make_subplots
+            from engine.indicators import add_indicators
+
+            if df.empty or len(df) < 10:
+                return
+
+            df_c = add_indicators(df.copy()).copy()
+            df_c["datetime"] = pd.to_datetime(df_c["datetime"])
+
+            # Keep last 2 trading days so user can pan into yesterday
+            today = df_c["datetime"].iloc[-1].date()
+            two_days_ago = today - pd.Timedelta(days=3)   # 3 calendar days covers Mon+Fri weekend gap
+            df_c = df_c[df_c["datetime"].dt.date >= two_days_ago].tail(150)
+
+            # Default view: today's candles only — pan left to see yesterday
+            today_start = df_c[df_c["datetime"].dt.date == today]["datetime"].iloc[0] - pd.Timedelta(minutes=10)
+            x_default_end = df_c["datetime"].iloc[-1] + pd.Timedelta(minutes=10)
+
+            # ── Split Supertrend into green/red segments ──────────────────────
+            st_green_y = df_c["st_value"].where(df_c["st_signal"] == 1)
+            st_red_y   = df_c["st_value"].where(df_c["st_signal"] == -1)
+
+            fig = make_subplots(
+                rows=3, cols=1,
+                shared_xaxes=True,
+                row_heights=[0.60, 0.20, 0.20],
+                vertical_spacing=0.03,
+            )
+
+            # ── Row 1: Candlesticks ───────────────────────────────────────────
+            fig.add_trace(go.Candlestick(
+                x=df_c["datetime"],
+                open=df_c["open"], high=df_c["high"],
+                low=df_c["low"],  close=df_c["close"],
+                name="Price",
+                increasing_line_color="#22c55e",
+                decreasing_line_color="#ef4444",
+                increasing_fillcolor="#22c55e",
+                decreasing_fillcolor="#ef4444",
+            ), row=1, col=1)
+
+            # Supertrend GREEN
+            fig.add_trace(go.Scatter(
+                x=df_c["datetime"], y=st_green_y,
+                mode="lines", name="ST Green",
+                line=dict(color="#22c55e", width=2),
+            ), row=1, col=1)
+
+            # Supertrend RED
+            fig.add_trace(go.Scatter(
+                x=df_c["datetime"], y=st_red_y,
+                mode="lines", name="ST Red",
+                line=dict(color="#ef4444", width=2),
+            ), row=1, col=1)
+
+            # EMA21
+            fig.add_trace(go.Scatter(
+                x=df_c["datetime"], y=df_c["ema_slow"],
+                mode="lines", name="EMA 21",
+                line=dict(color="#f59e0b", width=1, dash="dot"),
+            ), row=1, col=1)
+
+            # VWAP
+            fig.add_trace(go.Scatter(
+                x=df_c["datetime"], y=df_c["vwap"],
+                mode="lines", name="VWAP",
+                line=dict(color="#818cf8", width=1, dash="dash"),
+            ), row=1, col=1)
+
+            # ── Entry / SL / Target lines (if in trade) ───────────────────────
+            if ot:
+                x0, x1 = df_c["datetime"].iloc[0], df_c["datetime"].iloc[-1]
+                clr = "#22c55e" if ot["direction"] == SIGNAL_BUY else "#ef4444"
+                for val, label, color in [
+                    (ot["entry_price"], "Entry",  clr),
+                    (ot["sl"],          "SL",     "#f59e0b"),
+                    (ot.get("target"),  "Target", "#38bdf8"),
+                ]:
+                    if val:
+                        fig.add_shape(type="line", x0=x0, x1=x1, y0=val, y1=val,
+                                      line=dict(color=color, width=1, dash="dot"),
+                                      row=1, col=1)
+                        fig.add_annotation(x=x1, y=val, text=f" {label} {val}",
+                                           showarrow=False, xanchor="left",
+                                           font=dict(color=color, size=11),
+                                           row=1, col=1)
+
+            # ── Buy/Sell signal marker on last candle ─────────────────────────
+            sig_dir = sig.get("signal")
+            if sig_dir in (SIGNAL_BUY, SIGNAL_SELL):
+                marker_y  = df_c["low"].iloc[-1]  * 0.9995 if sig_dir == SIGNAL_BUY else df_c["high"].iloc[-1] * 1.0005
+                marker_sym = "triangle-up" if sig_dir == SIGNAL_BUY else "triangle-down"
+                marker_clr = "#22c55e"     if sig_dir == SIGNAL_BUY else "#ef4444"
+                fig.add_trace(go.Scatter(
+                    x=[df_c["datetime"].iloc[-1]], y=[marker_y],
+                    mode="markers",
+                    marker=dict(symbol=marker_sym, size=14, color=marker_clr),
+                    name=sig_dir, showlegend=False,
+                ), row=1, col=1)
+
+            # ── Row 2: RSI ────────────────────────────────────────────────────
+            fig.add_trace(go.Scatter(
+                x=df_c["datetime"], y=df_c["rsi"],
+                mode="lines", name="RSI",
+                line=dict(color="#a78bfa", width=1.5),
+            ), row=2, col=1)
+
+            # RSI bands — 3 clean lines only
+            for level, color in [
+                (config.RSI_SELL_HIGH, "#ef4444"),   # top of SELL zone
+                (50,                   "#57606a"),   # midline
+                (config.RSI_BUY_LOW,   "#22c55e"),   # bottom of BUY zone
+            ]:
+                fig.add_hline(y=level, line_dash="dot", line_color=color,
+                              line_width=1, row=2, col=1)
+
+            # ── Row 3: ADX ────────────────────────────────────────────────────
+            fig.add_trace(go.Scatter(
+                x=df_c["datetime"], y=df_c["adx"],
+                mode="lines", name="ADX",
+                line=dict(color="#38bdf8", width=1.5),
+            ), row=3, col=1)
+            fig.add_hline(y=config.ADX_THRESHOLD, line_dash="dot",
+                          line_color="#f59e0b", line_width=1, row=3, col=1)
+            fig.add_hline(y=config.ADX_MAX, line_dash="dot",
+                          line_color="#ef4444", line_width=1, row=3, col=1)
+
+            # ── Layout ────────────────────────────────────────────────────────
+            fig.update_layout(
+                height=520,
+                paper_bgcolor="#0f1117",
+                plot_bgcolor="#0f1117",
+                font=dict(color="#e6edf3", size=11),
+                showlegend=True,
+                legend=dict(orientation="h", y=1.02, x=0,
+                            bgcolor="rgba(0,0,0,0)", font=dict(size=10)),
+                margin=dict(l=10, r=80, t=10, b=10),
+                xaxis_rangeslider_visible=False,
+            )
+            for row_n in [1, 2, 3]:
+                fig.update_xaxes(
+                    gridcolor="#1e2430", zeroline=False,
+                    showticklabels=(row_n == 3),
+                    range=[today_start, x_default_end],
+                    row=row_n, col=1,
+                )
+                fig.update_yaxes(
+                    gridcolor="#1e2430", zeroline=False, row=row_n, col=1,
+                )
+
+            # Y-axis labels
+            fig.update_yaxes(title_text="Price",  title_font_size=10, row=1, col=1)
+            fig.update_yaxes(title_text="RSI",    title_font_size=10, row=2, col=1)
+            fig.update_yaxes(title_text="ADX",    title_font_size=10, row=3, col=1)
+
+            st.plotly_chart(fig, use_container_width=True, config={
+                "displayModeBar": True,
+                "modeBarButtonsToRemove": ["select2d", "lasso2d", "autoScale2d"],
+                "scrollZoom": True,
+            })
+
+        except Exception as _chart_err:
+            st.caption(f"Chart unavailable: {_chart_err}")
 
     def _trade_log():
         if not os.path.isfile(config.SIGNAL_LOG):
@@ -405,11 +571,17 @@ with tab_live:
     with c1:
         st.markdown(f"#### {config.INSTRUMENTS[syms[0]]['symbol']}")
         _signal_card(syms[0], st.session_state.signals.get(syms[0], {}))
-        _mini_chart(st.session_state.candles.get(syms[0], pd.DataFrame()))
+        _mini_chart(st.session_state.candles.get(syms[0], pd.DataFrame()),
+                    syms[0],
+                    st.session_state.signals.get(syms[0], {}),
+                    st.session_state.open_trades.get(syms[0]))
     with c2:
         st.markdown(f"#### {config.INSTRUMENTS[syms[1]]['symbol']}")
         _signal_card(syms[1], st.session_state.signals.get(syms[1], {}))
-        _mini_chart(st.session_state.candles.get(syms[1], pd.DataFrame()))
+        _mini_chart(st.session_state.candles.get(syms[1], pd.DataFrame()),
+                    syms[1],
+                    st.session_state.signals.get(syms[1], {}),
+                    st.session_state.open_trades.get(syms[1]))
 
     st.markdown("---")
     b1, b2, _ = st.columns([1, 1, 5])

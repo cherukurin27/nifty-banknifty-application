@@ -166,10 +166,17 @@ def evaluate_signal(df: pd.DataFrame, symbol: str = "") -> dict:
         return _no_signal("Insufficient data")
 
     row = df.iloc[-1]   # latest completed candle
-    # Stamp prev_st_signal for the ST confirmation check in eval_entry_signal
-    prev_row    = df.iloc[-2]
-    row_dict    = dict(row)
-    row_dict["prev_st_signal"] = int(prev_row.get("st_signal") or 0)
+    # Stamp st_history (last 4 st_signals) for per-symbol ST confirm check
+    max_confirm = max(
+        int(getattr(config, "ST_CONFIRM_CANDLES_NIFTY", config.ST_CONFIRM_CANDLES)),
+        int(config.ST_CONFIRM_CANDLES),
+    )
+    row_dict = dict(row)
+    row_dict["prev_st_signal"] = int(df.iloc[-2].get("st_signal") or 0)  # backward compat
+    row_dict["st_history"] = [
+        int(df.iloc[-(k+1)].get("st_signal") or 0)
+        for k in range(1, min(max_confirm + 1, len(df)))
+    ]
     row = row_dict   # type: ignore[assignment]  — used as dict from here on
 
     # ── Session filter ──────────────────────────────────────────────────────
@@ -213,9 +220,29 @@ def evaluate_signal(df: pd.DataFrame, symbol: str = "") -> dict:
     if adx_val > adx_max:
         return _no_signal(f"Overextended — ADX={adx_val:.1f} > {adx_max}", row)
 
+    # ── ADX dead zone 33–38 ─────────────────────────────────────────────────
+    adx_dz_lo = getattr(config, "ADX_DEAD_ZONE_LOW",  None)
+    adx_dz_hi = getattr(config, "ADX_DEAD_ZONE_HIGH", None)
+    if adx_dz_lo is not None and adx_dz_hi is not None:
+        if adx_dz_lo <= adx_val < adx_dz_hi:
+            return _no_signal(
+                f"ADX dead zone — ADX={adx_val:.1f} in [{adx_dz_lo},{adx_dz_hi}) "
+                f"(9% WR Nifty / 33% WR BNKN over 180d)", row)
+
     # ── Opening noise filter ────────────────────────────────────────────────
     if candle_ts.time() < datetime.time(9, 40):
         return _no_signal("Opening noise — before 09:40", row)
+
+    # ── NIFTY SELL early morning filter ────────────────────────────────────
+    nifty_sell_start = getattr(config, "NIFTY_SELL_START", None)
+    if (symbol == "NIFTY" and nifty_sell_start):
+        h, m = map(int, nifty_sell_start.split(":"))
+        if candle_ts.time() < datetime.time(h, m):
+            st_sig_now = row.get("st_signal", 0)
+            if int(st_sig_now or 0) == -1:   # only restrict SELL direction
+                return _no_signal(
+                    f"NIFTY SELL blocked before {nifty_sell_start} "
+                    f"(6 fast losers −270 pts in 09:40–10:00 over 180d)", row)
 
     close       = row["close"]
     st_sig      = row["st_signal"]
@@ -227,13 +254,27 @@ def evaluate_signal(df: pd.DataFrame, symbol: str = "") -> dict:
     atr_val     = row["atr"]
     prev_st_sig = row.get("prev_st_signal")
 
-    # ── ST confirmation (reuse same logic as eval_entry_signal) ────────────
-    confirm = int(getattr(config, "ST_CONFIRM_CANDLES", 1))
-    if confirm >= 2 and prev_st_sig is not None:
-        st_buy_ok  = (st_sig == 1  and int(prev_st_sig) == 1)
-        st_sell_ok = (st_sig == -1 and int(prev_st_sig) == -1)
-        st_buy_lbl  = f"ST GREEN ×{confirm} candles"
-        st_sell_lbl = f"ST RED ×{confirm} candles"
+    # ── ST confirmation (mirrors eval_entry_signal — per-symbol confirm count) ─
+    symbol_key = str(row.get("symbol") or "")
+    if symbol_key == "NIFTY":
+        confirm = int(getattr(config, "ST_CONFIRM_CANDLES_NIFTY", config.ST_CONFIRM_CANDLES))
+    else:
+        confirm = int(getattr(config, "ST_CONFIRM_CANDLES", 1))
+
+    st_hist = row.get("st_history")
+    if confirm >= 2:
+        if st_hist is not None:
+            needed = st_hist[: confirm - 1]
+            st_buy_ok  = (st_sig == 1  and all(s == 1  for s in needed))
+            st_sell_ok = (st_sig == -1 and all(s == -1 for s in needed))
+        elif prev_st_sig is not None:
+            st_buy_ok  = (st_sig == 1  and int(prev_st_sig) == 1)
+            st_sell_ok = (st_sig == -1 and int(prev_st_sig) == -1)
+        else:
+            st_buy_ok  = (st_sig == 1)
+            st_sell_ok = (st_sig == -1)
+        st_buy_lbl  = f"ST GREEN x{confirm} candles"
+        st_sell_lbl = f"ST RED x{confirm} candles"
     else:
         st_buy_ok  = (st_sig == 1)
         st_sell_ok = (st_sig == -1)
@@ -336,20 +377,55 @@ def eval_entry_signal(row) -> str:
     prev_st_sig = row.get("prev_st_signal")   # None if not supplied
 
     adx_max    = config.ADX_MAX if isinstance(config.ADX_MAX, (int, float)) else 60
-    adx_ok     = (not np.isnan(adx_val)) and config.ADX_THRESHOLD <= adx_val <= adx_max
+    adx_dz_lo  = getattr(config, "ADX_DEAD_ZONE_LOW",  None)
+    adx_dz_hi  = getattr(config, "ADX_DEAD_ZONE_HIGH", None)
+    in_dead_zone = (adx_dz_lo is not None and adx_dz_hi is not None
+                    and adx_dz_lo <= adx_val < adx_dz_hi)
+    adx_ok     = ((not np.isnan(adx_val))
+                  and config.ADX_THRESHOLD <= adx_val <= adx_max
+                  and not in_dead_zone)
     rsi_buy_lo = _rsi_buy_low(symbol)
     rsi_buy_hi = _rsi_buy_high(symbol)
 
+    # ── NIFTY SELL early-morning block ───────────────────────────────────────
+    nifty_sell_start = getattr(config, "NIFTY_SELL_START", None)
+    nifty_sell_blocked = False
+    if symbol == "NIFTY" and nifty_sell_start:
+        dt_raw = row.get("datetime")
+        if dt_raw is not None:
+            import pandas as _pd
+            t = _pd.to_datetime(dt_raw)
+            if t.tzinfo is not None:
+                t = t.tz_convert("Asia/Kolkata").tz_localize(None)
+            h, m = map(int, nifty_sell_start.split(":"))
+            import datetime as _dt
+            if t.time() < _dt.time(h, m):
+                nifty_sell_blocked = True
+
     # ── Supertrend confirmation: N consecutive same-direction candles ─────────
     # Only applied when prev_st_signal is available (backtester / live path).
-    # If ST_CONFIRM_CANDLES == 1, no confirmation needed (first-candle entry OK).
-    confirm = int(getattr(config, "ST_CONFIRM_CANDLES", 1))
-    if confirm >= 2 and prev_st_sig is not None:
-        # For now, N=2: current AND previous candle must agree on direction.
-        st_buy_confirmed  = (st_sig == 1  and int(prev_st_sig) == 1)
-        st_sell_confirmed = (st_sig == -1 and int(prev_st_sig) == -1)
+    # Per-symbol ST confirmation count
+    if symbol == "NIFTY":
+        confirm = int(getattr(config, "ST_CONFIRM_CANDLES_NIFTY", config.ST_CONFIRM_CANDLES))
     else:
-        # confirm == 1 or prev not available: accept first-candle flip (old behaviour)
+        confirm = int(getattr(config, "ST_CONFIRM_CANDLES", 1))
+
+    if confirm >= 2:
+        # Use st_history if available (list of prev N st_signals), else fall back to prev_st_sig
+        st_hist = row.get("st_history")  # list [prev1, prev2, prev3, ...] or None
+        if st_hist is not None:
+            # Need `confirm-1` previous candles to all match current st_sig
+            needed = st_hist[: confirm - 1]
+            st_buy_confirmed  = (st_sig == 1  and all(s == 1  for s in needed))
+            st_sell_confirmed = (st_sig == -1 and all(s == -1 for s in needed))
+        elif prev_st_sig is not None:
+            # Fallback: only 1 previous candle available
+            st_buy_confirmed  = (st_sig == 1  and int(prev_st_sig) == 1)
+            st_sell_confirmed = (st_sig == -1 and int(prev_st_sig) == -1)
+        else:
+            st_buy_confirmed  = (st_sig == 1)
+            st_sell_confirmed = (st_sig == -1)
+    else:
         st_buy_confirmed  = (st_sig == 1)
         st_sell_confirmed = (st_sig == -1)
 
@@ -362,7 +438,8 @@ def eval_entry_signal(row) -> str:
     sell_all = (adx_ok and st_sell_confirmed
                 and close < ema_s
                 and config.RSI_SELL_LOW <= rsi_val <= rsi_sell_hi
-                and close < vwap_val)
+                and close < vwap_val
+                and not nifty_sell_blocked)
 
     if buy_all:  return SIGNAL_BUY
     if sell_all: return SIGNAL_SELL
