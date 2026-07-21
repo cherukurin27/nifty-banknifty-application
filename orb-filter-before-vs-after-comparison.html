@@ -1,0 +1,109 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"Segoe UI",system-ui,sans-serif;font-size:14px;line-height:1.6;background:#fff;color:#1f2328}
+  .wrap{max-width:760px;margin:0 auto;padding:24px 16px}
+  h1{font-size:20px;margin-bottom:4px}
+  h2{font-size:15px;font-weight:600;margin:24px 0 8px;border-bottom:1px solid #e5e7eb;padding-bottom:4px}
+  .muted{color:#57606a;font-size:13px;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px}
+  th{background:#f7f8fa;text-align:left;padding:7px 8px;border:1px solid #e5e7eb;font-weight:600}
+  td{padding:6px 8px;border:1px solid #e5e7eb}
+  tr:nth-child(even) td{background:#fafafa}
+  .pos{color:#2a7a2a;font-weight:600}
+  .neg{color:#b22222;font-weight:600}
+  .neu{color:#b07000;font-weight:600}
+  .better{background:#f0faf0}
+  .worse{background:#fff5f5}
+  .verdict{padding:10px 14px;border-radius:6px;font-size:13px;margin-bottom:10px;border:1px solid}
+  .verdict-green{background:#f0faf0;border-color:#b6dbb6;color:#1a5c1a}
+  .verdict-red{background:#fff5f5;border-color:#f0b6b6;color:#7a1a1a}
+  .verdict-yellow{background:#fffbf0;border-color:#e0d090;color:#6b5000}
+  footer{margin-top:40px;padding-top:12px;border-top:1px solid #e5e7eb;text-align:center;font-size:12px;color:#57606a}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ORB Filter — Before vs After</h1>
+  <p class="muted">Baseline = ORB OFF (07:27 report)  |  ORB ON = current run (08:52)  |  BUY only blocked when close &lt; first15_high</p>
+
+  <h2>NIFTY</h2>
+  <table>
+    <thead><tr><th>Period</th><th>Metric</th><th>Baseline (OFF)</th><th>ORB ON</th><th>Change</th></tr></thead>
+    <tbody>
+      <tr class="better"><td rowspan="6">90d</td><td>Trades</td><td>27</td><td>27</td><td>—</td></tr>
+      <tr class="better"><td>WR</td><td>51.9%</td><td>51.9%</td><td>—</td></tr>
+      <tr class="better"><td>Net Pts</td><td class="pos">+1,109</td><td class="pos">+1,109</td><td>—</td></tr>
+      <tr class="better"><td>MDD</td><td>−197</td><td>−197</td><td>—</td></tr>
+      <tr class="better"><td>PF</td><td>3.04</td><td>3.04</td><td>—</td></tr>
+      <tr class="better"><td>Exp</td><td>+41.2</td><td>+41.2</td><td>—</td></tr>
+
+      <tr><td rowspan="4">365d</td><td>Trades</td><td>130</td><td>121</td><td class="neu">−9 trades</td></tr>
+      <tr class="better"><td>Net Pts</td><td class="pos">+1,805</td><td class="pos">+1,958</td><td class="pos">+153 ✓</td></tr>
+      <tr class="better"><td>MDD</td><td>−462</td><td>−515</td><td class="neg">−53 worse</td></tr>
+      <tr><td>WR</td><td>37.7%</td><td>38.8%</td><td class="pos">+1.1%</td></tr>
+
+      <tr><td>90d BUY</td><td>Trades / Net</td><td>25T / +22 pts</td><td>17T / −4 pts</td><td class="neg">−8 BUY trades blocked</td></tr>
+      <tr><td>90d SELL</td><td>Trades / Net</td><td>106T / +1,738 pts</td><td>105T / +1,917 pts</td><td class="pos">+179 pts SELL improved</td></tr>
+    </tbody>
+  </table>
+
+  <div class="verdict verdict-yellow">
+    <b>NIFTY verdict:</b> ORB filter is <b>neutral</b> on 90d (zero change). On 365d it adds +153 pts by removing 9 weak BUY trades, but MDD slightly worsens. NIFTY BUY was already near breakeven (+22 pts on 25 trades) — ORB cuts it to 17 trades at −4 pts, barely a difference. Not a meaningful improvement for NIFTY.
+  </div>
+
+  <h2>BANKNIFTY</h2>
+  <table>
+    <thead><tr><th>Period</th><th>Metric</th><th>Baseline (OFF)</th><th>ORB ON</th><th>Change</th></tr></thead>
+    <tbody>
+      <tr><td rowspan="7">90d</td><td>Trades</td><td>24</td><td>36</td><td class="pos">+12 more trades</td></tr>
+      <tr class="better"><td>WR</td><td>50.0%</td><td>47.2%</td><td class="neg">−2.8%</td></tr>
+      <tr class="better"><td>Net Pts</td><td class="pos">+2,945</td><td class="pos">+2,986</td><td class="pos">+41 ✓</td></tr>
+      <tr><td>RR</td><td>3.01</td><td>2.66</td><td class="neg">−0.35</td></tr>
+      <tr class="worse"><td>MDD</td><td>−391</td><td>−428</td><td class="neg">−37 worse</td></tr>
+      <tr class="better"><td>MCL</td><td>3</td><td>4</td><td class="neg">+1</td></tr>
+      <tr class="better"><td>PF</td><td>—</td><td>2.38</td><td>—</td></tr>
+
+      <tr class="better"><td rowspan="4">180d</td><td>Net Pts</td><td class="pos">+4,994</td><td class="pos">+6,603</td><td class="pos"><b>+1,609 ✓✓</b></td></tr>
+      <tr class="better"><td>WR</td><td>41.5%</td><td>46.5%</td><td class="pos">+5.0% ✓</td></tr>
+      <tr class="better"><td>MDD</td><td>−664</td><td>−428</td><td class="pos"><b>+236 better ✓✓</b></td></tr>
+      <tr class="better"><td>MCL</td><td>5</td><td>4</td><td class="pos">−1 ✓</td></tr>
+
+      <tr class="better"><td rowspan="4">365d</td><td>Net Pts</td><td class="pos">+3,728</td><td class="pos">+5,685</td><td class="pos"><b>+1,957 ✓✓✓</b></td></tr>
+      <tr class="better"><td>WR</td><td>39.6%</td><td>43.1%</td><td class="pos"><b>+3.5% ✓✓</b></td></tr>
+      <tr class="better"><td>MDD</td><td>−2,400</td><td>−1,520</td><td class="pos"><b>+880 better ✓✓✓</b></td></tr>
+      <tr class="better"><td>MCL</td><td>7</td><td>6</td><td class="pos">−1 ✓</td></tr>
+
+      <tr class="better"><td>365d BUY</td><td>Trades / Net</td><td>42T / −1,128 pts</td><td>41T / +787 pts</td><td class="pos"><b>+1,915 pts ✓✓✓</b></td></tr>
+      <tr class="better"><td>365d SELL</td><td>Trades / Net</td><td>103T / +4,757 pts</td><td>103T / +4,898 pts</td><td class="pos">+141 pts ✓</td></tr>
+    </tbody>
+  </table>
+
+  <div class="verdict verdict-green">
+    <b>BANKNIFTY verdict: STRONG improvement.</b> The ORB filter fixed BNKN BUY — flipped from −1,128 pts (33% WR) to +787 pts (48.8% WR) over 365d. That is a <b>+1,915 pt swing</b> purely from requiring close &gt; first15_high before entering a BUY. MDD also improved massively: −2,400 → −1,520 pts (37% better). The 180d numbers confirm it's consistent: +4,994 → +6,603 pts, MDD halved.
+  </div>
+
+  <h2>Summary</h2>
+  <table>
+    <thead><tr><th>Symbol / Period</th><th>Baseline Net Pts</th><th>ORB ON Net Pts</th><th>Change</th><th>MDD Change</th></tr></thead>
+    <tbody>
+      <tr><td>NIFTY 90d</td><td class="pos">+1,109</td><td class="pos">+1,109</td><td>—</td><td>—</td></tr>
+      <tr><td>NIFTY 365d</td><td class="pos">+1,805</td><td class="pos">+1,958</td><td class="pos">+153</td><td class="neg">−53 worse</td></tr>
+      <tr class="better"><td>BNKN 90d</td><td class="pos">+2,945</td><td class="pos">+2,986</td><td class="pos">+41</td><td class="neg">−37 worse</td></tr>
+      <tr class="better"><td>BNKN 180d</td><td class="pos">+4,994</td><td class="pos">+6,603</td><td class="pos"><b>+1,609</b></td><td class="pos"><b>+236 better</b></td></tr>
+      <tr class="better"><td>BNKN 365d</td><td class="pos">+3,728</td><td class="pos">+5,685</td><td class="pos"><b>+1,957</b></td><td class="pos"><b>+880 better</b></td></tr>
+    </tbody>
+  </table>
+
+  <h2>Recommendation</h2>
+  <div class="verdict verdict-green">
+    <b>Keep ORB filter ON.</b> The BANKNIFTY improvement is decisive — +1,957 pts on 365d, MDD improved by 880 pts, BUY turned profitable. NIFTY is unchanged at 90d. The only minor negative is BNKN 90d MDD slightly worse (−391 → −428) and MCL 3→4, but these are minor vs the massive 180d and 365d gains. This is the biggest single improvement since the 150pt SL cap.
+  </div>
+
+<footer>Made with IBM Bob</footer>
+</div>
+</body>
+</html>

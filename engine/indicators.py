@@ -307,8 +307,10 @@ def add_indicators(df: pd.DataFrame, extended: bool = False) -> pd.DataFrame:
     ----------
     extended : bool
         If True, also compute the extended discovery indicators:
-        ema9/20/50, prev_day_high/low, first15_high/low, atr_pct.
+        ema9/20/50, prev_day_high/low, atr_pct.
         Default False — keeps the live signal path lean.
+
+    Note: first15_high/low is always computed (required for ORB filter).
     """
     if len(df) < max(config.EMA_SLOW, config.RSI_PERIOD, config.ST_PERIOD) + 5:
         return df  # not enough data yet
@@ -323,11 +325,11 @@ def add_indicators(df: pd.DataFrame, extended: bool = False) -> pd.DataFrame:
     df["vwap"]     = vwap(df)          # called after supertrend; uses transform → index-safe
     df["atr"]      = atr(df, config.ATR_PERIOD)
     df["adx"]      = adx(df, config.ADX_PERIOD)
+    df = first_15min_range(df)         # always computed — required for ORB filter
 
     if extended:
         df = ema_triple(df)
         df = prev_day_levels(df)
-        df = first_15min_range(df)
         df["atr_pct"] = atr_pct(df, config.ATR_PERIOD)
 
     return df

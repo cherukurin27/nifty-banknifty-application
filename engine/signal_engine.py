@@ -281,6 +281,17 @@ def evaluate_signal(df: pd.DataFrame, symbol: str = "") -> dict:
         st_buy_lbl  = "Supertrend GREEN"
         st_sell_lbl = "Supertrend RED"
 
+    # ── ORB filter (BUY only) ────────────────────────────────────────────────
+    orb_filter  = getattr(config, "ORB_FILTER", False)
+    orb_symbols = getattr(config, "ORB_SYMBOLS", [])
+    first15_h   = float(row.get("first15_high") or 0)
+    if orb_filter and symbol in orb_symbols and first15_h > 0:
+        orb_buy_ok = close > first15_h
+        orb_label  = f"Price > ORB high ({first15_h:.0f})"
+    else:
+        orb_buy_ok = True
+        orb_label  = None
+
     # ── BUY conditions ──────────────────────────────────────────────────────
     rsi_lo = _rsi_buy_low(symbol)
     rsi_hi = _rsi_buy_high(symbol)
@@ -290,6 +301,8 @@ def evaluate_signal(df: pd.DataFrame, symbol: str = "") -> dict:
         f"RSI {rsi_lo:.0f}-{rsi_hi:.0f}"     : rsi_lo <= rsi_val <= rsi_hi,
         "Price above VWAP"                    : close > vwap_val,
     }
+    if orb_label:
+        buy_conditions[orb_label] = orb_buy_ok
 
     # ── SELL conditions ─────────────────────────────────────────────────────
     sell_conditions = {
@@ -432,17 +445,40 @@ def eval_entry_signal(row) -> str:
         st_buy_confirmed  = (st_sig == 1)
         st_sell_confirmed = (st_sig == -1)
 
+    # ── ORB filter (BUY only): price must be above first-15-min high ─────────
+    orb_filter  = getattr(config, "ORB_FILTER", False)
+    orb_symbols = getattr(config, "ORB_SYMBOLS", [])
+    if orb_filter and symbol in orb_symbols:
+        first15_h = float(row.get("first15_high") or 0)
+        orb_buy_ok = (first15_h <= 0) or (close > first15_h)   # pass when no ORB data yet
+    else:
+        orb_buy_ok = True
+
+    # ── VIX filter (BUY + SELL): skip on extreme volatility days ─────────────
+    vix_filter = getattr(config, "VIX_FILTER", False)
+    if vix_filter:
+        vix_open   = float(row.get("vix_open") or 0)
+        vix_high   = float(getattr(config, "VIX_SKIP_HIGH", 20))
+        vix_low    = float(getattr(config, "VIX_SKIP_LOW",  11))
+        # vix_open == 0 means no VIX data for this day — allow entry (safe fallback)
+        vix_ok = (vix_open <= 0) or (vix_low < vix_open < vix_high)
+    else:
+        vix_ok = True
+
     buy_all = (adx_ok and st_buy_confirmed
                and close > ema_s
                and rsi_buy_lo <= rsi_val <= rsi_buy_hi
-               and close > vwap_val)
+               and close > vwap_val
+               and orb_buy_ok
+               and vix_ok)
 
     rsi_sell_hi = _rsi_sell_high(symbol)
     sell_all = (adx_ok and st_sell_confirmed
                 and close < ema_s
                 and config.RSI_SELL_LOW <= rsi_val <= rsi_sell_hi
                 and close < vwap_val
-                and not nifty_sell_blocked)
+                and not nifty_sell_blocked
+                and vix_ok)
 
     if buy_all:  return SIGNAL_BUY
     if sell_all: return SIGNAL_SELL

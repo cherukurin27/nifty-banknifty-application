@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 import config
 from feed.angel_auth import get_session
-from feed.data_feed import fetch_candles
+from feed.data_feed import fetch_candles, fetch_vix_daily
 from engine.backtester import run_backtest, summary_stats
 
 DAYS_BACK   = 372        # slight over-fetch to absorb indicator warmup
@@ -60,14 +60,97 @@ def _monthly(trades_full):
     trades_full["month"] = trades_full["date"].astype(str).str[:7]
     result = {}
     for month, grp in trades_full.groupby("month"):
-        w = int((grp["result"] == "WIN").sum())
+        w   = int((grp["result"] == "WIN").sum())
+        pts = round(float(grp["points"].sum()), 2)
         result[month] = {
             "trades": len(grp), "wins": w,
             "losses": int((grp["result"] == "LOSS").sum()),
-            "points": round(float(grp["points"].sum()), 2),
+            "points": pts,
             "wr": round(w / len(grp) * 100, 1),
         }
     return result
+
+
+def _monthly_consistency(monthly: dict) -> dict:
+    """
+    Summary stats across all calendar months in the dataset.
+    Returns: profitable_months, total_months, consistency_pct,
+             best_month (pts+name), worst_month (pts+name), avg_monthly_pts.
+    """
+    if not monthly:
+        return {}
+    pts_list = [(m, v["points"]) for m, v in sorted(monthly.items())]
+    total    = len(pts_list)
+    profit   = sum(1 for _, p in pts_list if p > 0)
+    all_pts  = [p for _, p in pts_list]
+    best     = max(pts_list, key=lambda x: x[1])
+    worst    = min(pts_list, key=lambda x: x[1])
+    return {
+        "total_months"      : total,
+        "profitable_months" : profit,
+        "consistency_pct"   : round(profit / total * 100, 1) if total else 0,
+        "best_month_name"   : best[0],
+        "best_month_pts"    : best[1],
+        "worst_month_name"  : worst[0],
+        "worst_month_pts"   : worst[1],
+        "avg_monthly_pts"   : round(sum(all_pts) / total, 1) if total else 0,
+    }
+
+
+def _monte_carlo(trades_full, n_sims: int = 1000, seed: int = 42) -> dict:
+    """
+    Monte Carlo simulation: shuffle trade P&L order N times.
+    Reports P5, P25, P50, P75, P95 final equity outcomes and
+    the probability of ending with a loss (negative equity).
+    Uses the full trade list (all periods).
+    """
+    import numpy as np
+    pts = trades_full["points"].values.astype(float)
+    if len(pts) < 5:
+        return {}
+    rng = np.random.default_rng(seed)
+    finals = []
+    for _ in range(n_sims):
+        shuffled = rng.permutation(pts)
+        finals.append(float(shuffled.sum()))   # sum is order-independent; track MDD instead
+    # MDD per simulation
+    mdds = []
+    for _ in range(n_sims):
+        shuffled = rng.permutation(pts)
+        cum  = shuffled.cumsum()
+        peak = np.maximum.accumulate(cum)
+        mdd  = float((cum - peak).min())
+        mdds.append(mdd)
+    mdds.sort()
+    prob_loss = round(sum(1 for m in mdds if m + pts.sum() < 0) / n_sims * 100, 1)
+    return {
+        "n_sims"         : n_sims,
+        "net_pts_actual" : round(float(pts.sum()), 1),
+        "mdd_p5"         : round(mdds[int(n_sims * 0.05)], 1),
+        "mdd_p25"        : round(mdds[int(n_sims * 0.25)], 1),
+        "mdd_p50"        : round(mdds[int(n_sims * 0.50)], 1),
+        "mdd_p75"        : round(mdds[int(n_sims * 0.75)], 1),
+        "mdd_p95"        : round(mdds[int(n_sims * 0.95)], 1),
+        "prob_ruin_pct"  : prob_loss,
+    }
+
+
+def _oos_stats(trades_full, is_pct: float = 0.70):
+    """
+    Out-of-sample split: first is_pct of trades = in-sample, rest = out-of-sample.
+    Sorts by date, splits, returns summary_stats for both halves.
+    """
+    if trades_full.empty:
+        return {}
+    sorted_t = trades_full.sort_values("date").reset_index(drop=True)
+    split    = int(len(sorted_t) * is_pct)
+    is_t     = sorted_t.iloc[:split]
+    oos_t    = sorted_t.iloc[split:]
+    is_s     = summary_stats(is_t)
+    oos_s    = summary_stats(oos_t)
+    is_s["label"]  = f"In-Sample (first {int(is_pct*100)}% — {len(is_t)} trades)"
+    oos_s["label"] = f"Out-of-Sample (last {int((1-is_pct)*100)}% — {len(oos_t)} trades)"
+    return {"in_sample": is_s, "out_of_sample": oos_s}
 
 
 def _exit_time_analysis(trades_full):
@@ -121,8 +204,20 @@ def _html(data: dict) -> str:
         rr   = s.get("risk_reward", 0)
         mdd  = s.get("max_drawdown", 0)
         mcl  = s.get("max_consec_loss", 0)
+        mcw  = s.get("max_consec_win", 0)
         tot  = s.get("total_trades", 0)
-        color = "#2a7a2a" if pts >= 0 else "#b22222"
+        pf   = s.get("profit_factor", 0)
+        exp  = s.get("expectancy", 0)
+        avg_r = s.get("avg_r_multiple", 0)
+        rf   = s.get("recovery_factor", 0)
+        ui   = s.get("ulcer_index", 0)
+        color     = "#2a7a2a" if pts >= 0 else "#b22222"
+        pf_color  = "#2a7a2a" if pf >= 1.5 else ("#b07000" if pf >= 1.0 else "#b22222")
+        exp_color = "#2a7a2a" if exp >= 0 else "#b22222"
+        rf_color  = "#2a7a2a" if rf >= 2.0 else ("#b07000" if rf >= 1.0 else "#b22222")
+        avgr_color = "#2a7a2a" if avg_r >= 0.3 else ("#b07000" if avg_r >= 0 else "#b22222")
+        pf_disp   = f"{pf:.2f}" if pf != float("inf") else "∞"
+        rf_disp   = f"{rf:.2f}" if rf != float("inf") else "∞"
         return f"""
         <div class="kpi-row">
           <div class="kpi"><div class="kpi-val">{tot}</div><div class="kpi-lbl">Trades (90d)</div></div>
@@ -131,6 +226,12 @@ def _html(data: dict) -> str:
           <div class="kpi"><div class="kpi-val">{rr}</div><div class="kpi-lbl">Risk:Reward</div></div>
           <div class="kpi"><div class="kpi-val">{mdd:.0f}</div><div class="kpi-lbl">Max Drawdown</div></div>
           <div class="kpi"><div class="kpi-val">{mcl}</div><div class="kpi-lbl">Max Consec Loss</div></div>
+          <div class="kpi"><div class="kpi-val">{mcw}</div><div class="kpi-lbl">Max Consec Win</div></div>
+          <div class="kpi"><div class="kpi-val" style="color:{pf_color}">{pf_disp}</div><div class="kpi-lbl">Profit Factor</div></div>
+          <div class="kpi"><div class="kpi-val" style="color:{exp_color}">{exp:+.1f}</div><div class="kpi-lbl">Expectancy (pts)</div></div>
+          <div class="kpi"><div class="kpi-val" style="color:{avgr_color}">{avg_r:+.2f}R</div><div class="kpi-lbl">Avg R-Multiple</div></div>
+          <div class="kpi"><div class="kpi-val" style="color:{rf_color}">{rf_disp}</div><div class="kpi-lbl">Recovery Factor</div></div>
+          <div class="kpi"><div class="kpi-val">{ui:.1f}</div><div class="kpi-lbl">Ulcer Index</div></div>
         </div>"""
 
     # ── period slice table ────────────────────────────────────────────────────
@@ -141,7 +242,12 @@ def _html(data: dict) -> str:
             s = ps.get(str(p), {})
             if not s:
                 continue
-            color = "pos" if s.get("total_points", 0) >= 0 else "neg"
+            color  = "pos" if s.get("total_points", 0) >= 0 else "neg"
+            pf_val = s.get("profit_factor", 0)
+            pf_str = f"{pf_val:.2f}" if pf_val != float("inf") else "∞"
+            pf_cls = "pos" if pf_val >= 1.5 else ("" if pf_val >= 1.0 else "neg")
+            exp_val = s.get("expectancy", 0)
+            exp_cls = "pos" if exp_val >= 0 else "neg"
             rows += (f"<tr><td>{p}d</td><td>{s.get('total_trades',0)}</td>"
                      f"<td>{s.get('win_rate_pct',0)}%</td>"
                      f"<td class='{color}'>{s.get('total_points',0):+.1f}</td>"
@@ -149,11 +255,14 @@ def _html(data: dict) -> str:
                      f"<td>{s.get('avg_loss_pts',0):.1f}</td>"
                      f"<td>{s.get('risk_reward',0)}</td>"
                      f"<td>{s.get('max_drawdown',0):.1f}</td>"
-                     f"<td>{s.get('max_consec_loss',0)}</td></tr>")
+                     f"<td>{s.get('max_consec_loss',0)}</td>"
+                     f"<td class='{pf_cls}'>{pf_str}</td>"
+                     f"<td class='{exp_cls}'>{exp_val:+.1f}</td></tr>")
         return f"""
         <table><thead><tr>
           <th>Period</th><th>Trades</th><th>WR</th><th>Net Pts</th>
           <th>Avg Win</th><th>Avg Loss</th><th>RR</th><th>MDD</th><th>MCL</th>
+          <th>PF</th><th>Exp</th>
         </tr></thead><tbody>{rows}</tbody></table>"""
 
     # ── buy/sell table ────────────────────────────────────────────────────────
@@ -175,9 +284,10 @@ def _html(data: dict) -> str:
           <th>Side</th><th>Trades</th><th>WR</th><th>Net Pts</th><th>Avg Win</th><th>Avg Loss</th>
         </tr></thead><tbody>{rows}</tbody></table>"""
 
-    # ── monthly table ─────────────────────────────────────────────────────────
+    # ── monthly table + consistency ───────────────────────────────────────────
     def monthly_table(sym):
-        m = data["results"][sym]["monthly"]
+        m  = data["results"][sym]["monthly"]
+        mc = data["results"][sym].get("monthly_consistency", {})
         rows = ""
         for month in sorted(m):
             s = m[month]
@@ -186,9 +296,76 @@ def _html(data: dict) -> str:
                      f"<td>{s.get('wins',0)}W / {s.get('losses',0)}L</td>"
                      f"<td>{s.get('wr',0)}%</td>"
                      f"<td class='{color}'>{s.get('points',0):+.1f}</td></tr>")
-        return f"""
+        consistency_html = ""
+        if mc:
+            cp = mc.get("consistency_pct", 0)
+            cp_color = "#2a7a2a" if cp >= 70 else ("#b07000" if cp >= 50 else "#b22222")
+            consistency_html = (
+                f"<p style='font-size:13px;margin:6px 0 10px'>"
+                f"<b>Consistency:</b> <span style='color:{cp_color};font-weight:700'>"
+                f"{mc.get('profitable_months',0)}/{mc.get('total_months',0)} profitable months ({cp}%)</span>"
+                f" &nbsp;|&nbsp; Avg: <b>{mc.get('avg_monthly_pts',0):+.0f} pts/mo</b>"
+                f" &nbsp;|&nbsp; Best: <b>{mc.get('best_month_name','')} ({mc.get('best_month_pts',0):+.0f})</b>"
+                f" &nbsp;|&nbsp; Worst: <b>{mc.get('worst_month_name','')} ({mc.get('worst_month_pts',0):+.0f})</b>"
+                f"</p>"
+            )
+        return consistency_html + f"""
         <table><thead><tr>
           <th>Month</th><th>Trades</th><th>W/L</th><th>WR</th><th>Net Pts</th>
+        </tr></thead><tbody>{rows}</tbody></table>"""
+
+    # ── Monte Carlo section ───────────────────────────────────────────────────
+    def monte_carlo_section(sym):
+        mc = data["results"][sym].get("monte_carlo", {})
+        if not mc:
+            return ""
+        p5, p50, p95 = mc["mdd_p5"], mc["mdd_p50"], mc["mdd_p95"]
+        prob = mc["prob_ruin_pct"]
+        prob_color = "#2a7a2a" if prob == 0 else ("#b07000" if prob < 10 else "#b22222")
+        return f"""
+        <p style='font-size:13px;margin:4px 0 8px;color:#57606a'>
+          {mc['n_sims']:,} simulations — trade order shuffled randomly each run.
+          Actual net: <b>{mc['net_pts_actual']:+.0f} pts</b>. MDD distribution across simulations:
+        </p>
+        <table><thead><tr>
+          <th>MDD P5</th><th>MDD P25</th><th>MDD P50 (median)</th><th>MDD P75</th><th>MDD P95</th><th>P(ruin)</th>
+        </tr></thead><tbody><tr>
+          <td>{p5:.0f}</td><td>{mc['mdd_p25']:.0f}</td>
+          <td><b>{p50:.0f}</b></td><td>{mc['mdd_p75']:.0f}</td>
+          <td class='neg'>{p95:.0f}</td>
+          <td style='color:{prob_color};font-weight:700'>{prob}%</td>
+        </tr></tbody></table>
+        <p style='font-size:12px;color:#57606a;margin-top:4px'>
+          MDD P95 = worst drawdown in 95% of simulations. P(ruin) = probability final equity &lt; 0.
+        </p>"""
+
+    # ── Out-of-Sample section ────────────────────────────────────────────────
+    def oos_section(sym):
+        oos = data["results"][sym].get("oos_stats", {})
+        if not oos:
+            return ""
+        rows = ""
+        for key in ["in_sample", "out_of_sample"]:
+            s = oos.get(key, {})
+            if not s:
+                continue
+            color = "pos" if s.get("total_points", 0) >= 0 else "neg"
+            pf = s.get("profit_factor", 0)
+            pf_str = f"{pf:.2f}" if pf != float("inf") else "∞"
+            rows += (f"<tr><td><b>{s.get('label','')}</b></td>"
+                     f"<td>{s.get('win_rate_pct',0)}%</td>"
+                     f"<td class='{color}'>{s.get('total_points',0):+.1f}</td>"
+                     f"<td>{pf_str}</td>"
+                     f"<td>{s.get('expectancy',0):+.1f}</td>"
+                     f"<td>{s.get('max_drawdown',0):.1f}</td>"
+                     f"<td>{s.get('risk_reward',0)}</td></tr>")
+        return f"""
+        <p style='font-size:13px;color:#57606a;margin:4px 0 8px'>
+          Chronological 70/30 split — checks whether recent performance matches historical.
+          A large gap between in-sample and out-of-sample PF/WR indicates overfitting.
+        </p>
+        <table><thead><tr>
+          <th>Period</th><th>WR</th><th>Net Pts</th><th>PF</th><th>Exp</th><th>MDD</th><th>RR</th>
         </tr></thead><tbody>{rows}</tbody></table>"""
 
     # ── exit reason table ─────────────────────────────────────────────────────
@@ -288,6 +465,8 @@ def _html(data: dict) -> str:
           <h3>Period Slices</h3>{period_table(sym)}
           <h3>BUY vs SELL (90d)</h3>{direction_table(sym)}
           <h3>Monthly Breakdown</h3>{monthly_table(sym)}
+          <h3>Monte Carlo Simulation (all trades)</h3>{monte_carlo_section(sym)}
+          <h3>Out-of-Sample Test (70/30 split)</h3>{oos_section(sym)}
           <h3>Exit Reasons (90d)</h3>{exit_table(sym)}
           <h3>Exit Time-of-Day Analysis</h3>{exit_time_table(sym)}
           <h3>Equity Curve (all trades)</h3>{equity_svg(sym)}
@@ -365,6 +544,12 @@ def main():
     api, _, _ = get_session()
     print("  Login OK\n")
 
+    # Fetch India VIX daily data once (empty dict if VIX_FILTER = False)
+    vix_by_date = fetch_vix_daily(api, days_back=DAYS_BACK)
+    if vix_by_date:
+        print(f"  VIX data: {len(vix_by_date)} days fetched "
+              f"(filter: >{config.VIX_SKIP_HIGH} or <{config.VIX_SKIP_LOW})\n")
+
     results    = {}
     data_range = {}
 
@@ -383,7 +568,7 @@ def main():
         }
 
         print(f"  Running backtest for {sym} ...", end=" ", flush=True)
-        trades_full, _ = run_backtest(df, sym)
+        trades_full, _ = run_backtest(df, sym, vix_by_date=vix_by_date)
         print(f"{len(trades_full)} trades")
 
         if trades_full.empty:
@@ -398,19 +583,27 @@ def main():
         ps = {str(p): _stats_for_period(trades_full, p) for p in PERIODS}
         s90 = ps.get("90", {})
         if s90:
+            pf_disp = (f"{s90.get('profit_factor',0):.2f}"
+                       if s90.get('profit_factor',0) != float("inf") else "∞")
             print(f"    90d -> {s90.get('total_trades',0)} trades | "
                   f"WR {s90.get('win_rate_pct',0)}% | "
                   f"Net {s90.get('total_points',0):+.1f} pts | "
                   f"RR {s90.get('risk_reward',0)} | "
-                  f"MDD {s90.get('max_drawdown',0):.1f}")
+                  f"MDD {s90.get('max_drawdown',0):.1f} | "
+                  f"PF {pf_disp} | "
+                  f"Exp {s90.get('expectancy',0):+.1f} pts/trade")
 
+        monthly_data = _monthly(trades_full)
         results[sym] = {
-            "period_stats"     : ps,
-            "by_direction"     : _by_direction(trades_full),
-            "by_exit"          : trades_full["exit_reason"].value_counts().to_dict(),
-            "monthly"          : _monthly(trades_full),
-            "exit_time_analysis": _exit_time_analysis(trades_full),
-            "all_trades"       : json.loads(trades_full.to_json(orient="records", default_handler=str)),
+            "period_stats"       : ps,
+            "by_direction"       : _by_direction(trades_full),
+            "by_exit"            : trades_full["exit_reason"].value_counts().to_dict(),
+            "monthly"            : monthly_data,
+            "monthly_consistency": _monthly_consistency(monthly_data),
+            "monte_carlo"        : _monte_carlo(trades_full),
+            "oos_stats"          : _oos_stats(trades_full),
+            "exit_time_analysis" : _exit_time_analysis(trades_full),
+            "all_trades"         : json.loads(trades_full.to_json(orient="records", default_handler=str)),
         }
         print()
 

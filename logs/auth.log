@@ -2040,3 +2040,266 @@
 [I 260721 07:09:02 smartConnect:124] in pool
 [I 260721 07:26:10 smartConnect:124] in pool
 [I 260721 08:05:49 smartConnect:124] in pool
+[I 260721 08:08:42 smartConnect:124] in pool
+[D 260721 08:41:49 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:41:49 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926000
+[D 260721 08:41:50 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:41:50 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926009
+[D 260721 08:42:50 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:42:50 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926000
+[D 260721 08:42:51 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:42:51 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926009
+[D 260721 08:43:51 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:43:51 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926000
+[D 260721 08:43:52 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:43:52 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926009
+[D 260721 08:44:52 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:44:52 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926000
+[D 260721 08:44:53 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:44:53 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926009
+[D 260721 08:45:53 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:45:53 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926000
+[D 260721 08:45:54 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:45:54 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926009
+[D 260721 08:46:54 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:46:54 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926000
+[D 260721 08:46:55 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:46:55 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926009
+[D 260721 08:47:55 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:47:55 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926000
+[D 260721 08:47:56 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:47:56 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926009
+[D 260721 08:48:55 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:48:55 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926000
+[D 260721 08:48:56 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:48:56 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926009
+[D 260721 08:49:55 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:49:55 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926000
+[D 260721 08:49:56 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:49:56 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926009
+[D 260721 08:50:55 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:50:55 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926000
+[D 260721 08:50:56 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:50:56 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926009
+[D 260721 08:51:55 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:51:55 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926000
+[D 260721 08:51:56 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:51:56 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926009
+[I 260721 08:52:06 smartConnect:124] in pool
+[D 260721 08:52:55 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:52:55 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926000
+[D 260721 08:52:56 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:52:56 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926009
+[D 260721 08:53:55 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:53:55 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926000
+[D 260721 08:53:56 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:53:56 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926009
+[D 260721 08:54:55 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:54:55 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926000
+[D 260721 08:54:56 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:54:56 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926009
+[D 260721 08:55:55 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:55:55 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926000
+[D 260721 08:55:56 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:55:56 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926009
+[D 260721 08:56:55 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:56:55 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926000
+[D 260721 08:56:56 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:56:56 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926009
+[I 260721 08:56:59 smartConnect:124] in pool
+[D 260721 08:57:55 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:57:55 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926000
+[D 260721 08:57:56 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:57:56 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926009
+[D 260721 08:58:55 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:58:55 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926000
+[D 260721 08:58:56 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:58:56 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926009
+[I 260721 08:59:49 smartConnect:124] in pool
+[D 260721 08:59:55 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:59:55 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926000
+[D 260721 08:59:56 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 08:59:56 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926009
+[I 260721 09:00:06 smartConnect:124] in pool
+[I 260721 09:00:20 smartConnect:124] in pool
+[D 260721 09:00:55 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 09:00:55 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926000
+[D 260721 09:00:56 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 09:00:56 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926009
+[D 260721 09:01:55 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 09:01:55 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926000
+[D 260721 09:01:56 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 09:01:56 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926009
+[D 260721 09:02:55 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 09:02:55 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926000
+[D 260721 09:02:56 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 09:02:56 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926009
+[D 260721 09:03:55 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 09:03:55 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926000
+[D 260721 09:03:56 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 09:03:56 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926009
+[D 260721 09:04:55 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 09:04:55 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926000
+[D 260721 09:04:56 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 09:04:56 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926009
+[I 260721 09:06:01 smartConnect:124] in pool
+[D 260721 09:13:04 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 09:13:04 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926000
+[D 260721 09:13:05 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 09:13:05 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926009
+[D 260721 09:14:05 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 09:14:05 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926000
+[D 260721 09:14:06 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 09:14:06 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926009
+[D 260721 09:15:04 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 09:15:04 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926000
+[D 260721 09:15:05 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 75 candles
+[I 260721 09:15:05 data_feed:147] fetch_candles: 75 total candles over 1 days for token 99926009
+[D 260721 09:16:05 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 76 candles
+[I 260721 09:16:05 data_feed:147] fetch_candles: 76 total candles over 1 days for token 99926000
+[D 260721 09:16:06 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 76 candles
+[I 260721 09:16:06 data_feed:147] fetch_candles: 76 total candles over 1 days for token 99926009
+[I 260721 09:16:51 smartConnect:124] in pool
+[W 260721 09:17:06 data_feed:68] Rate limit hit (attempt 1/3) — waiting 10s …
+[D 260721 09:17:17 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 77 candles
+[I 260721 09:17:17 data_feed:147] fetch_candles: 77 total candles over 1 days for token 99926000
+[D 260721 09:17:17 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 77 candles
+[I 260721 09:17:17 data_feed:147] fetch_candles: 77 total candles over 1 days for token 99926009
+[D 260721 09:18:07 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 76 candles
+[I 260721 09:18:07 data_feed:147] fetch_candles: 76 total candles over 1 days for token 99926000
+[D 260721 09:18:08 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 76 candles
+[I 260721 09:18:08 data_feed:147] fetch_candles: 76 total candles over 1 days for token 99926009
+[D 260721 09:19:08 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 76 candles
+[I 260721 09:19:08 data_feed:147] fetch_candles: 76 total candles over 1 days for token 99926000
+[D 260721 09:19:09 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 76 candles
+[I 260721 09:19:09 data_feed:147] fetch_candles: 76 total candles over 1 days for token 99926009
+[D 260721 09:20:09 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 77 candles
+[I 260721 09:20:09 data_feed:147] fetch_candles: 77 total candles over 1 days for token 99926000
+[D 260721 09:20:10 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 77 candles
+[I 260721 09:20:10 data_feed:147] fetch_candles: 77 total candles over 1 days for token 99926009
+[D 260721 09:21:10 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 77 candles
+[I 260721 09:21:10 data_feed:147] fetch_candles: 77 total candles over 1 days for token 99926000
+[E 260721 09:21:11 smartConnect:246] Error occurred while making a POST request to https://apiconnect.angelone.in/rest/secure/angelbroking/historical/v1/getCandleData. Error: Too many requests. URL: https://apiconnect.angelone.in/rest/secure/angelbroking/historical/v1/getCandleData, Headers: {'Content-type': 'application/json', 'X-ClientLocalIP': '127.0.0.1', 'X-ClientPublicIP': '106.193.147.98', 'X-MACAddress': '1c:c1:0c:cb:3c:29', 'Accept': 'application/json', 'X-PrivateKey': 'oH2OEG3x', 'X-UserType': 'USER', 'X-SourceID': 'WEB'}, Request: {'exchange': 'NSE', 'symboltoken': '99926009', 'interval': 'FIVE_MINUTE', 'fromdate': '2026-07-20 09:15', 'todate': '2026-07-21 09:21'}, Response: {'message': 'Too many requests', 'errorcode': 'AB1021', 'status': False, 'data': None}
+[E 260721 09:21:11 data_feed:76] getCandleData failed (2026-07-20 – 2026-07-21): {'message': 'Too many requests', 'errorcode': 'AB1021', 'status': False, 'data': None}
+[E 260721 09:22:11 smartConnect:246] Error occurred while making a POST request to https://apiconnect.angelone.in/rest/secure/angelbroking/historical/v1/getCandleData. Error: Too many requests. URL: https://apiconnect.angelone.in/rest/secure/angelbroking/historical/v1/getCandleData, Headers: {'Content-type': 'application/json', 'X-ClientLocalIP': '127.0.0.1', 'X-ClientPublicIP': '106.193.147.98', 'X-MACAddress': '1c:c1:0c:cb:3c:29', 'Accept': 'application/json', 'X-PrivateKey': 'oH2OEG3x', 'X-UserType': 'USER', 'X-SourceID': 'WEB'}, Request: {'exchange': 'NSE', 'symboltoken': '99926000', 'interval': 'FIVE_MINUTE', 'fromdate': '2026-07-20 09:15', 'todate': '2026-07-21 09:22'}, Response: {'message': 'Too many requests', 'errorcode': 'AB1021', 'status': False, 'data': None}
+[E 260721 09:22:11 data_feed:76] getCandleData failed (2026-07-20 – 2026-07-21): {'message': 'Too many requests', 'errorcode': 'AB1021', 'status': False, 'data': None}
+[E 260721 09:22:12 smartConnect:246] Error occurred while making a POST request to https://apiconnect.angelone.in/rest/secure/angelbroking/historical/v1/getCandleData. Error: Too many requests. URL: https://apiconnect.angelone.in/rest/secure/angelbroking/historical/v1/getCandleData, Headers: {'Content-type': 'application/json', 'X-ClientLocalIP': '127.0.0.1', 'X-ClientPublicIP': '106.193.147.98', 'X-MACAddress': '1c:c1:0c:cb:3c:29', 'Accept': 'application/json', 'X-PrivateKey': 'oH2OEG3x', 'X-UserType': 'USER', 'X-SourceID': 'WEB'}, Request: {'exchange': 'NSE', 'symboltoken': '99926009', 'interval': 'FIVE_MINUTE', 'fromdate': '2026-07-20 09:15', 'todate': '2026-07-21 09:22'}, Response: {'message': 'Too many requests', 'errorcode': 'AB1021', 'status': False, 'data': None}
+[E 260721 09:22:12 data_feed:76] getCandleData failed (2026-07-20 – 2026-07-21): {'message': 'Too many requests', 'errorcode': 'AB1021', 'status': False, 'data': None}
+[E 260721 09:23:12 smartConnect:246] Error occurred while making a POST request to https://apiconnect.angelone.in/rest/secure/angelbroking/historical/v1/getCandleData. Error: Too many requests. URL: https://apiconnect.angelone.in/rest/secure/angelbroking/historical/v1/getCandleData, Headers: {'Content-type': 'application/json', 'X-ClientLocalIP': '127.0.0.1', 'X-ClientPublicIP': '106.193.147.98', 'X-MACAddress': '1c:c1:0c:cb:3c:29', 'Accept': 'application/json', 'X-PrivateKey': 'oH2OEG3x', 'X-UserType': 'USER', 'X-SourceID': 'WEB'}, Request: {'exchange': 'NSE', 'symboltoken': '99926000', 'interval': 'FIVE_MINUTE', 'fromdate': '2026-07-20 09:15', 'todate': '2026-07-21 09:23'}, Response: {'message': 'Too many requests', 'errorcode': 'AB1021', 'status': False, 'data': None}
+[E 260721 09:23:12 data_feed:76] getCandleData failed (2026-07-20 – 2026-07-21): {'message': 'Too many requests', 'errorcode': 'AB1021', 'status': False, 'data': None}
+[E 260721 09:23:13 smartConnect:246] Error occurred while making a POST request to https://apiconnect.angelone.in/rest/secure/angelbroking/historical/v1/getCandleData. Error: Too many requests. URL: https://apiconnect.angelone.in/rest/secure/angelbroking/historical/v1/getCandleData, Headers: {'Content-type': 'application/json', 'X-ClientLocalIP': '127.0.0.1', 'X-ClientPublicIP': '106.193.147.98', 'X-MACAddress': '1c:c1:0c:cb:3c:29', 'Accept': 'application/json', 'X-PrivateKey': 'oH2OEG3x', 'X-UserType': 'USER', 'X-SourceID': 'WEB'}, Request: {'exchange': 'NSE', 'symboltoken': '99926009', 'interval': 'FIVE_MINUTE', 'fromdate': '2026-07-20 09:15', 'todate': '2026-07-21 09:23'}, Response: {'message': 'Too many requests', 'errorcode': 'AB1021', 'status': False, 'data': None}
+[E 260721 09:23:13 data_feed:76] getCandleData failed (2026-07-20 – 2026-07-21): {'message': 'Too many requests', 'errorcode': 'AB1021', 'status': False, 'data': None}
+[D 260721 09:24:04 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 77 candles
+[I 260721 09:24:04 data_feed:147] fetch_candles: 77 total candles over 1 days for token 99926000
+[D 260721 09:24:05 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 77 candles
+[I 260721 09:24:05 data_feed:147] fetch_candles: 77 total candles over 1 days for token 99926009
+[D 260721 09:25:05 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 78 candles
+[I 260721 09:25:05 data_feed:147] fetch_candles: 78 total candles over 1 days for token 99926000
+[W 260721 09:25:06 data_feed:68] Rate limit hit (attempt 1/3) — waiting 10s …
+[D 260721 09:25:17 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 78 candles
+[I 260721 09:25:17 data_feed:147] fetch_candles: 78 total candles over 1 days for token 99926009
+[D 260721 09:26:06 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 78 candles
+[I 260721 09:26:06 data_feed:147] fetch_candles: 78 total candles over 1 days for token 99926000
+[D 260721 09:26:07 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 78 candles
+[I 260721 09:26:07 data_feed:147] fetch_candles: 78 total candles over 1 days for token 99926009
+[W 260721 09:27:07 data_feed:68] Rate limit hit (attempt 1/3) — waiting 10s …
+[D 260721 09:27:18 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 78 candles
+[I 260721 09:27:18 data_feed:147] fetch_candles: 78 total candles over 1 days for token 99926000
+[D 260721 09:27:18 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 78 candles
+[I 260721 09:27:18 data_feed:147] fetch_candles: 78 total candles over 1 days for token 99926009
+[D 260721 09:28:04 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 78 candles
+[I 260721 09:28:04 data_feed:147] fetch_candles: 78 total candles over 1 days for token 99926000
+[D 260721 09:28:05 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 78 candles
+[I 260721 09:28:05 data_feed:147] fetch_candles: 78 total candles over 1 days for token 99926009
+[D 260721 09:29:05 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 78 candles
+[I 260721 09:29:05 data_feed:147] fetch_candles: 78 total candles over 1 days for token 99926000
+[D 260721 09:29:06 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 78 candles
+[I 260721 09:29:06 data_feed:147] fetch_candles: 78 total candles over 1 days for token 99926009
+[D 260721 09:30:06 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 79 candles
+[I 260721 09:30:06 data_feed:147] fetch_candles: 79 total candles over 1 days for token 99926000
+[D 260721 09:30:07 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 79 candles
+[I 260721 09:30:07 data_feed:147] fetch_candles: 79 total candles over 1 days for token 99926009
+[W 260721 09:31:07 data_feed:68] Rate limit hit (attempt 1/3) — waiting 10s …
+[W 260721 09:31:18 data_feed:68] Rate limit hit (attempt 2/3) — waiting 20s …
+[E 260721 09:31:38 data_feed:72] getCandleData error (2026-07-20 – 2026-07-21): Couldn't parse the JSON response received from the server: b'Access denied because of exceeding access rate'
+[D 260721 09:31:39 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 79 candles
+[I 260721 09:31:39 data_feed:147] fetch_candles: 79 total candles over 1 days for token 99926009
+[D 260721 09:32:08 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 79 candles
+[I 260721 09:32:08 data_feed:147] fetch_candles: 79 total candles over 1 days for token 99926000
+[D 260721 09:32:09 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 79 candles
+[I 260721 09:32:09 data_feed:147] fetch_candles: 79 total candles over 1 days for token 99926009
+[D 260721 09:33:09 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 79 candles
+[I 260721 09:33:09 data_feed:147] fetch_candles: 79 total candles over 1 days for token 99926000
+[W 260721 09:33:10 data_feed:68] Rate limit hit (attempt 1/3) — waiting 10s …
+[D 260721 09:33:20 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 79 candles
+[I 260721 09:33:20 data_feed:147] fetch_candles: 79 total candles over 1 days for token 99926009
+[D 260721 09:34:10 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 79 candles
+[I 260721 09:34:10 data_feed:147] fetch_candles: 79 total candles over 1 days for token 99926000
+[D 260721 09:34:11 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 79 candles
+[I 260721 09:34:11 data_feed:147] fetch_candles: 79 total candles over 1 days for token 99926009
+[W 260721 09:35:11 data_feed:68] Rate limit hit (attempt 1/3) — waiting 10s …
+[D 260721 09:35:22 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 80 candles
+[I 260721 09:35:22 data_feed:147] fetch_candles: 80 total candles over 1 days for token 99926000
+[W 260721 09:35:22 data_feed:68] Rate limit hit (attempt 1/3) — waiting 10s …
+[D 260721 09:35:33 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 80 candles
+[I 260721 09:35:33 data_feed:147] fetch_candles: 80 total candles over 1 days for token 99926009
+[E 260721 09:36:12 smartConnect:246] Error occurred while making a POST request to https://apiconnect.angelone.in/rest/secure/angelbroking/historical/v1/getCandleData. Error: Too many requests. URL: https://apiconnect.angelone.in/rest/secure/angelbroking/historical/v1/getCandleData, Headers: {'Content-type': 'application/json', 'X-ClientLocalIP': '127.0.0.1', 'X-ClientPublicIP': '106.193.147.98', 'X-MACAddress': '1c:c1:0c:cb:3c:29', 'Accept': 'application/json', 'X-PrivateKey': 'oH2OEG3x', 'X-UserType': 'USER', 'X-SourceID': 'WEB'}, Request: {'exchange': 'NSE', 'symboltoken': '99926000', 'interval': 'FIVE_MINUTE', 'fromdate': '2026-07-20 09:15', 'todate': '2026-07-21 09:36'}, Response: {'message': 'Too many requests', 'errorcode': 'AB1021', 'status': False, 'data': None}
+[E 260721 09:36:12 data_feed:76] getCandleData failed (2026-07-20 – 2026-07-21): {'message': 'Too many requests', 'errorcode': 'AB1021', 'status': False, 'data': None}
+[E 260721 09:36:13 smartConnect:246] Error occurred while making a POST request to https://apiconnect.angelone.in/rest/secure/angelbroking/historical/v1/getCandleData. Error: Too many requests. URL: https://apiconnect.angelone.in/rest/secure/angelbroking/historical/v1/getCandleData, Headers: {'Content-type': 'application/json', 'X-ClientLocalIP': '127.0.0.1', 'X-ClientPublicIP': '106.193.147.98', 'X-MACAddress': '1c:c1:0c:cb:3c:29', 'Accept': 'application/json', 'X-PrivateKey': 'oH2OEG3x', 'X-UserType': 'USER', 'X-SourceID': 'WEB'}, Request: {'exchange': 'NSE', 'symboltoken': '99926009', 'interval': 'FIVE_MINUTE', 'fromdate': '2026-07-20 09:15', 'todate': '2026-07-21 09:36'}, Response: {'message': 'Too many requests', 'errorcode': 'AB1021', 'status': False, 'data': None}
+[E 260721 09:36:13 data_feed:76] getCandleData failed (2026-07-20 – 2026-07-21): {'message': 'Too many requests', 'errorcode': 'AB1021', 'status': False, 'data': None}
+[E 260721 09:37:13 smartConnect:246] Error occurred while making a POST request to https://apiconnect.angelone.in/rest/secure/angelbroking/historical/v1/getCandleData. Error: Too many requests. URL: https://apiconnect.angelone.in/rest/secure/angelbroking/historical/v1/getCandleData, Headers: {'Content-type': 'application/json', 'X-ClientLocalIP': '127.0.0.1', 'X-ClientPublicIP': '106.193.147.98', 'X-MACAddress': '1c:c1:0c:cb:3c:29', 'Accept': 'application/json', 'X-PrivateKey': 'oH2OEG3x', 'X-UserType': 'USER', 'X-SourceID': 'WEB'}, Request: {'exchange': 'NSE', 'symboltoken': '99926000', 'interval': 'FIVE_MINUTE', 'fromdate': '2026-07-20 09:15', 'todate': '2026-07-21 09:37'}, Response: {'message': 'Too many requests', 'errorcode': 'AB1021', 'status': False, 'data': None}
+[E 260721 09:37:13 data_feed:76] getCandleData failed (2026-07-20 – 2026-07-21): {'message': 'Too many requests', 'errorcode': 'AB1021', 'status': False, 'data': None}
+[W 260721 09:37:14 data_feed:68] Rate limit hit (attempt 1/3) — waiting 10s …
+[W 260721 09:37:24 data_feed:68] Rate limit hit (attempt 2/3) — waiting 20s …
+[E 260721 09:37:44 data_feed:72] getCandleData error (2026-07-20 – 2026-07-21): Couldn't parse the JSON response received from the server: b'Access denied because of exceeding access rate'
+[E 260721 09:38:14 smartConnect:246] Error occurred while making a POST request to https://apiconnect.angelone.in/rest/secure/angelbroking/historical/v1/getCandleData. Error: Too many requests. URL: https://apiconnect.angelone.in/rest/secure/angelbroking/historical/v1/getCandleData, Headers: {'Content-type': 'application/json', 'X-ClientLocalIP': '127.0.0.1', 'X-ClientPublicIP': '106.193.147.98', 'X-MACAddress': '1c:c1:0c:cb:3c:29', 'Accept': 'application/json', 'X-PrivateKey': 'oH2OEG3x', 'X-UserType': 'USER', 'X-SourceID': 'WEB'}, Request: {'exchange': 'NSE', 'symboltoken': '99926000', 'interval': 'FIVE_MINUTE', 'fromdate': '2026-07-20 09:15', 'todate': '2026-07-21 09:38'}, Response: {'message': 'Too many requests', 'errorcode': 'AB1021', 'status': False, 'data': None}
+[E 260721 09:38:14 data_feed:76] getCandleData failed (2026-07-20 – 2026-07-21): {'message': 'Too many requests', 'errorcode': 'AB1021', 'status': False, 'data': None}
+[W 260721 09:38:15 data_feed:68] Rate limit hit (attempt 1/3) — waiting 10s …
+[D 260721 09:38:25 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 80 candles
+[I 260721 09:38:25 data_feed:147] fetch_candles: 80 total candles over 1 days for token 99926009
+[D 260721 09:39:15 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 80 candles
+[I 260721 09:39:15 data_feed:147] fetch_candles: 80 total candles over 1 days for token 99926000
+[D 260721 09:39:16 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 80 candles
+[I 260721 09:39:16 data_feed:147] fetch_candles: 80 total candles over 1 days for token 99926009
+[W 260721 09:40:16 data_feed:68] Rate limit hit (attempt 1/3) — waiting 10s …
+[D 260721 09:40:27 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 81 candles
+[I 260721 09:40:27 data_feed:147] fetch_candles: 81 total candles over 1 days for token 99926000
+[W 260721 09:40:27 data_feed:68] Rate limit hit (attempt 1/3) — waiting 10s …
+[W 260721 09:40:38 data_feed:68] Rate limit hit (attempt 2/3) — waiting 20s …
+[E 260721 09:40:58 data_feed:72] getCandleData error (2026-07-20 – 2026-07-21): Couldn't parse the JSON response received from the server: b'Access denied because of exceeding access rate'
+[W 260721 09:41:55 data_feed:68] Rate limit hit (attempt 1/3) — waiting 10s …
+[D 260721 09:42:06 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 81 candles
+[I 260721 09:42:06 data_feed:147] fetch_candles: 81 total candles over 1 days for token 99926000
+[W 260721 09:42:06 data_feed:68] Rate limit hit (attempt 1/3) — waiting 10s …
+[D 260721 09:42:17 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 81 candles
+[I 260721 09:42:17 data_feed:147] fetch_candles: 81 total candles over 1 days for token 99926009
+[W 260721 09:42:55 data_feed:68] Rate limit hit (attempt 1/3) — waiting 10s …
+[D 260721 09:43:06 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 81 candles
+[I 260721 09:43:06 data_feed:147] fetch_candles: 81 total candles over 1 days for token 99926000
+[D 260721 09:43:06 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 81 candles
+[I 260721 09:43:06 data_feed:147] fetch_candles: 81 total candles over 1 days for token 99926009
+[W 260721 09:43:55 data_feed:68] Rate limit hit (attempt 1/3) — waiting 10s …
+[D 260721 09:44:06 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 81 candles
+[I 260721 09:44:06 data_feed:147] fetch_candles: 81 total candles over 1 days for token 99926000
+[D 260721 09:44:06 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 81 candles
+[I 260721 09:44:06 data_feed:147] fetch_candles: 81 total candles over 1 days for token 99926009
+[W 260721 09:44:55 data_feed:68] Rate limit hit (attempt 1/3) — waiting 10s …
+[W 260721 09:45:06 data_feed:68] Rate limit hit (attempt 2/3) — waiting 20s …
+[D 260721 09:45:26 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 81 candles
+[I 260721 09:45:26 data_feed:147] fetch_candles: 81 total candles over 1 days for token 99926000
+[D 260721 09:45:27 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 82 candles
+[I 260721 09:45:27 data_feed:147] fetch_candles: 82 total candles over 1 days for token 99926009
+[W 260721 09:45:55 data_feed:68] Rate limit hit (attempt 1/3) — waiting 10s …
+[W 260721 09:46:06 data_feed:68] Rate limit hit (attempt 2/3) — waiting 20s …
+[D 260721 09:46:26 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 82 candles
+[I 260721 09:46:26 data_feed:147] fetch_candles: 82 total candles over 1 days for token 99926000
+[W 260721 09:46:27 data_feed:68] Rate limit hit (attempt 1/3) — waiting 10s …
+[W 260721 09:46:37 data_feed:68] Rate limit hit (attempt 2/3) — waiting 20s …
+[W 260721 09:46:55 data_feed:68] Rate limit hit (attempt 1/3) — waiting 10s …
+[E 260721 09:46:58 data_feed:72] getCandleData error (2026-07-20 – 2026-07-21): Couldn't parse the JSON response received from the server: b'Access denied because of exceeding access rate'
+[D 260721 09:47:05 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 82 candles
+[I 260721 09:47:05 data_feed:147] fetch_candles: 82 total candles over 1 days for token 99926000
+[D 260721 09:47:05 data_feed:94] Chunk 2026-07-20 – 2026-07-21: 82 candles
+[I 260721 09:47:05 data_feed:147] fetch_candles: 82 total candles over 1 days for token 99926009
+[W 260721 09:47:06 data_feed:68] Rate limit hit (attempt 2/3) — waiting 20s …
+[I 260721 09:47:13 smartConnect:124] in pool

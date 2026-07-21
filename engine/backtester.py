@@ -84,7 +84,8 @@ def _nifty_buy_slot_skip(symbol: str, direction: str, t: datetime.time) -> bool:
     return _nifty_buy_skip_slot(symbol, direction, t)
 
 
-def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+def run_backtest(df_full: pd.DataFrame, symbol: str,
+                 vix_by_date: dict | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:
     df_full = df_full.copy()
     df_full["datetime"] = pd.to_datetime(df_full["datetime"])
     df_full = df_full.sort_values("datetime").reset_index(drop=True)
@@ -155,6 +156,9 @@ def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.D
             int(df_ind.iloc[i - k].get("st_signal") or 0)
             for k in range(1, min(max_confirm + 1, i + 1))
         ]
+        # Attach today's VIX open so eval_entry_signal can apply the VIX filter
+        if vix_by_date:
+            row_with_prev["vix_open"] = vix_by_date.get(str(cdate), 0)
 
         sig_label = eval_entry_signal(row_with_prev)
 
@@ -395,26 +399,60 @@ def summary_stats(trades: pd.DataFrame) -> dict:
     avg_win   = round(trades.loc[trades["result"] == "WIN",  "points"].mean() or 0, 2)
     avg_loss  = round(trades.loc[trades["result"] == "LOSS", "points"].mean() or 0, 2)
     rr        = round(abs(avg_win / avg_loss), 2) if avg_loss != 0 else float("inf")
-    streak = max_loss = 0
-    for r in trades["result"]:
-        streak   = streak + 1 if r == "LOSS" else 0
-        max_loss = max(max_loss, streak)
 
-    cum   = trades["points"].cumsum()
-    peak  = cum.cummax()
-    dd    = cum - peak
+    # Max consecutive wins and losses
+    streak_w = streak_l = max_win = max_loss = 0
+    for r in trades["result"]:
+        if r == "WIN":
+            streak_w += 1; streak_l = 0
+        elif r == "LOSS":
+            streak_l += 1; streak_w = 0
+        else:
+            streak_w = streak_l = 0
+        max_win  = max(max_win,  streak_w)
+        max_loss = max(max_loss, streak_l)
+
+    cum    = trades["points"].cumsum()
+    peak   = cum.cummax()
+    dd     = cum - peak
     max_dd = round(dd.min(), 2)
 
+    # Recovery Factor: total net pts / abs(max drawdown) — how many times over
+    # the strategy "recovered" its worst drawdown. > 1 = good; > 3 = excellent.
+    recovery_factor = round(total_pts / abs(max_dd), 2) if max_dd != 0 else float("inf")
+
+    # Ulcer Index: RMS of all drawdown values (measures sustained pain, not just peak DD)
+    # A lower value = smoother equity curve. Compare across periods to spot deterioration.
+    ulcer_index = round(float(np.sqrt((dd ** 2).mean())), 2)
+
+    gross_win  = round(float(trades.loc[trades["result"] == "WIN",  "points"].sum()), 2)
+    gross_loss = round(abs(float(trades.loc[trades["result"] == "LOSS", "points"].sum())), 2)
+    profit_factor = round(gross_win / gross_loss, 2) if gross_loss else float("inf")
+
+    # Expectancy: average pts earned per trade (accounts for WR and RR together)
+    loss_rate  = round(1 - win_rate / 100, 4)
+    expectancy = round((win_rate / 100 * avg_win) + (loss_rate * avg_loss), 2)
+
+    # Avg R-Multiple: each trade's return expressed as multiples of the avg loss
+    # R = pts / abs(avg_loss). Avg R > 0 = positive edge per unit of risk.
+    avg_r = round(expectancy / abs(avg_loss), 2) if avg_loss != 0 else 0.0
+
     return {
-        "total_trades"   : total,
-        "wins"           : int(wins),
-        "losses"         : int(losses),
-        "breakeven"      : int(be),
-        "win_rate_pct"   : win_rate,
-        "total_points"   : total_pts,
-        "avg_win_pts"    : avg_win,
-        "avg_loss_pts"   : avg_loss,
-        "risk_reward"    : rr,
-        "max_consec_loss": max_loss,
-        "max_drawdown"   : max_dd,
+        "total_trades"    : total,
+        "wins"            : int(wins),
+        "losses"          : int(losses),
+        "breakeven"       : int(be),
+        "win_rate_pct"    : win_rate,
+        "total_points"    : total_pts,
+        "avg_win_pts"     : avg_win,
+        "avg_loss_pts"    : avg_loss,
+        "risk_reward"     : rr,
+        "max_consec_loss" : max_loss,
+        "max_consec_win"  : max_win,
+        "max_drawdown"    : max_dd,
+        "profit_factor"   : profit_factor,
+        "expectancy"      : expectancy,
+        "avg_r_multiple"  : avg_r,
+        "recovery_factor" : recovery_factor,
+        "ulcer_index"     : ulcer_index,
     }

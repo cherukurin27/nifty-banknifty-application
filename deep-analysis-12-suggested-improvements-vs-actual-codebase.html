@@ -1,0 +1,166 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"Segoe UI",system-ui,sans-serif;font-size:14px;line-height:1.6;background:#fff;color:#1f2328}
+  .wrap{max-width:760px;margin:0 auto;padding:24px 16px}
+  h1{font-size:20px;margin-bottom:4px}
+  h2{font-size:15px;font-weight:600;margin:24px 0 8px;border-bottom:1px solid #e5e7eb;padding-bottom:4px}
+  .muted{color:#57606a;font-size:13px;margin-bottom:16px}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px}
+  th{background:#f7f8fa;text-align:left;padding:7px 8px;border:1px solid #e5e7eb;font-weight:600}
+  td{padding:6px 8px;border:1px solid #e5e7eb;vertical-align:top}
+  tr:nth-child(even) td{background:#fafafa}
+  .done{color:#2a7a2a;font-weight:700}
+  .partial{color:#b07000;font-weight:700}
+  .no{color:#b22222;font-weight:700}
+  .skip{color:#57606a;font-weight:700}
+  .tag{display:inline-block;font-size:11px;font-weight:600;padding:2px 7px;border-radius:4px;margin:0 2px}
+  .tag-green{background:#e6f4ea;color:#2a7a2a}
+  .tag-yellow{background:#fef9e7;color:#b07000}
+  .tag-red{background:#fde8e8;color:#b22222}
+  .tag-grey{background:#f0f0f0;color:#57606a}
+  .section-label{font-size:12px;font-weight:700;color:#57606a;text-transform:uppercase;letter-spacing:.05em;margin:20px 0 6px}
+  footer{margin-top:40px;padding-top:12px;border-top:1px solid #e5e7eb;text-align:center;font-size:12px;color:#57606a}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Deep Audit: 12 Suggested Improvements</h1>
+  <p class="muted">Honest assessment against actual code in engine/backtester.py, engine/signal_engine.py, engine/indicators.py, config.py</p>
+
+  <h2>The "bearish bias" claim — is it real?</h2>
+  <p style="font-size:13px;margin-bottom:10px">
+    The claim is that the strategy is skewed toward SELL (bearish) and may collapse in a bull market.
+    This is <b>partially true but overstated</b>. Here is why:
+  </p>
+  <table>
+    <thead><tr><th>Fact</th><th>Implication</th></tr></thead>
+    <tbody>
+      <tr><td>BNKN SELL: 103 trades, 41.7% WR, +4,757 pts (365d)</td><td>SELL is the dominant edge — true</td></tr>
+      <tr><td>BNKN BUY: 42 trades, 33% WR, −1,128 pts</td><td>BUY underperforms — true</td></tr>
+      <tr><td>NIFTY BUY: 25 trades, 32% WR, +22 pts (90d) — nearly breakeven</td><td>NIFTY BUY is not a disaster, just weak</td></tr>
+      <tr><td>BNKN BUY Apr–Jun 2026 (recent bull months): WR 43–66%, profitable</td><td class="done">BUY WORKS in uptrends — same strategy, different regime</td></tr>
+      <tr><td>Aug–Jan period contained multiple RBI-driven down moves</td><td>Historical dataset happened to be bearish-heavy, not a flaw in the filters</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:13px;color:#57606a;margin-bottom:6px">
+    Conclusion: The strategy is not "broken for bulls". The BUY side has a regime dependency — it underperforms in choppy/bearish markets and outperforms in clean uptrends. The solution is not adding more entry filters (we've proven those block the best trades). The solution is patience — let the market regime rotate.
+  </p>
+
+  <h2>Top 5 Prioritised Improvements — Honest Audit</h2>
+  <table>
+    <thead><tr><th width="22%">Suggestion</th><th width="18%">Status in Code</th><th>Real Assessment</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><b>1. ATR-based Stop Loss</b></td>
+        <td><span class="done">✅ Already done</span></td>
+        <td>
+          <b>Fully implemented.</b> BANKNIFTY uses <code>min(2×ATR(14), 150pts)</code> as SL. NIFTY uses a fixed 45pt cap (ATR range 20–45 pts, so cap is at the high end). The 150pt hard cap was added and saved +2,380 pts. There is nothing more to do here — adding a pure ATR-only SL without the hard cap was tried and produced −368pt losses.
+        </td>
+      </tr>
+      <tr>
+        <td><b>2. Higher Timeframe Confirmation (15m/30m trend)</b></td>
+        <td><span class="partial">⚠️ Weekly done; 15m/30m not done</span></td>
+        <td>
+          <b>Weekly trend filter is already implemented</b> (<code>weekly_trend_buy_ok()</code> using EMA10/EMA20 on weekly candles). A 15m/30m confirmation is a separate idea. <b>Risk:</b> We tried ST age ≥4 candles (proxy for "trend confirmed on higher frame") and it killed the best winning trades. A 15m/30m filter would do the same — the entry fires on a 5m ST flip; by the time the 15m trend confirms, price has moved 50–100 pts already. You'd enter late with a worse RR.
+        </td>
+      </tr>
+      <tr>
+        <td><b>3. Dynamic Intraday Trailing Stop</b></td>
+        <td><span class="done">✅ Already done</span></td>
+        <td>
+          <b>Fully implemented.</b> The Supertrend trail IS the dynamic intraday trailing stop. It trails the position every candle: BUY → <code>sl = max(sl, st_value)</code>; SELL → <code>sl = min(sl, st_value)</code>. It only exits when the trend reverses. This is exactly the recommended mechanism — using Supertrend as a trailing stop is already the core of the strategy.
+        </td>
+      </tr>
+      <tr>
+        <td><b>4. Volume + ORB Filter</b></td>
+        <td><span class="no">❌ Not implemented</span></td>
+        <td>
+          <b>Volume:</b> Angel One returns volume=0 for NIFTY and BANKNIFTY <b>index instruments</b> — they are not traded directly. The VWAP already falls back to equal-weight because of this (see <code>vwap()</code> in indicators.py). A volume filter literally cannot be applied to index instruments via Angel One. Would only work if trading futures/options, not the indices.<br /><br />
+          <b>ORB (Opening Range Breakout):</b> The infrastructure exists — <code>first_15min_range()</code> is already coded in <code>indicators.py</code> (computes first15_high/first15_low). It is just not wired into the entry signal yet. This <b>could be tested</b> but needs data validation first: does requiring price &gt; first15_high on BUY actually improve WR?
+        </td>
+      </tr>
+      <tr>
+        <td><b>5. Entry Time Optimisation</b></td>
+        <td><span class="done">✅ Already done</span></td>
+        <td>
+          <b>Fully implemented with data evidence.</b> The report already contains per-slot exit-time analysis. Based on that data:
+          <ul style="margin:4px 0 0 16px;font-size:13px">
+            <li>SESSION_START = 09:40 (skip opening 10-min noise)</li>
+            <li>NIFTY_SELL_START = 10:00 (6 fast losers −270pts in 09:40–10:00)</li>
+            <li>BNKN_SKIP_SLOT = 10:00–11:30 (16 trades, 1W/15L, −1,986 pts)</li>
+            <li>NIFTY_BUY_SKIP = 11:30–12:30 (lunch-hour dead zone)</li>
+            <li>NO_NEW_ENTRY_AFTER = 13:00 (13:00–13:30 WR=30% BNKN)</li>
+          </ul>
+          All major dead zones are already filtered. The exit-time table in the report shows exactly where the losses cluster — and those windows are already blocked.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Remaining 7 Suggestions</h2>
+  <table>
+    <thead><tr><th width="22%">Suggestion</th><th width="18%">Status</th><th>Assessment</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><b>Improve BUY Logic (EMA, VWAP, RSI, ADX)</b></td>
+        <td><span class="done">✅ Already done</span></td>
+        <td>BUY uses all 5 filters: Supertrend GREEN, price &gt; EMA21, RSI 53–57 (NIFTY) / 57–60 (BNKN), price &gt; VWAP, ADX 20–40. RSI bands were tuned with data evidence. ADX dead zones were identified and blocked. Further tightening consistently blocks the best wins.</td>
+      </tr>
+      <tr>
+        <td><b>Previous Day High/Low Filter</b></td>
+        <td><span class="partial">⚠️ Computed, not wired</span></td>
+        <td><code>prev_day_levels()</code> is coded in indicators.py. Not yet used in entry logic. Could be tested: "only BUY if price is above PDH" or "only SELL if price is below PDL." Worth a data analysis run but not a priority — the biggest losses are not near PDH/PDL, they are mid-session whipsaws.</td>
+      </tr>
+      <tr>
+        <td><b>India VIX Filter</b></td>
+        <td><span class="no">❌ Not implemented</span></td>
+        <td>India VIX is a separate instrument. Angel One provides it (token available) but it requires an additional API fetch per session. <b>Moderate effort.</b> On high-VIX days (VIX &gt; 20), intraday moves are large and SLs get hit. On very low VIX days (&lt;11), moves are small and EOD exits barely reach target. Could filter both extremes. Worth a dedicated analysis run.</td>
+      </tr>
+      <tr>
+        <td><b>Day-of-Week Analysis</b></td>
+        <td><span class="partial">⚠️ Thursday skip done for NIFTY</span></td>
+        <td>Thursday (Nifty expiry) is already skipped. Friday BankNifty is not skipped — it is net positive (+72 pts). Monday and Wednesday have not been analysed separately. Low priority — the report already shows monthly breakdown; day-of-week is a level deeper. The gains from this are likely small.</td>
+      </tr>
+      <tr>
+        <td><b>Professional Metrics (Profit Factor, Expectancy, Sharpe, Sortino)</b></td>
+        <td><span class="no">❌ Not in report</span></td>
+        <td><b>Easy to add to the report generator.</b> These are pure calculation additions — no strategy change. Profit Factor = gross wins / gross losses. Expectancy = (WR × avg win) − (LR × avg loss). Sharpe/Sortino need daily P&amp;L series. No risk, purely informational.</td>
+      </tr>
+      <tr>
+        <td><b>Market Regime Analysis (trending/ranging/volatile)</b></td>
+        <td><span class="partial">⚠️ ADX filter is a proxy</span></td>
+        <td>ADX &gt; 20 = trending (required for entry). ADX &lt; 20 = ranging (blocked). ADX &gt; 40 = overextended (blocked). ADX 33–38 dead zone (blocked). This IS a regime filter. A more sophisticated version could use ADX slope or VIX but the current ADX-based approach already captures the core regime distinction.</td>
+      </tr>
+      <tr>
+        <td><b>Opening Range Breakout (ORB)</b></td>
+        <td><span class="partial">⚠️ Infrastructure ready</span></td>
+        <td>As noted above — <code>first15_high/low</code> is already computed. The missing step is wiring it into entry logic and running a backtest to check if "BUY only when close &gt; first15_high" adds value. Our session already starts at 09:40, so the first entry is 25 min after open — ORB would further restrict to only breakout entries. Worth testing in one dedicated run.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>What is actually worth doing next</h2>
+  <table>
+    <thead><tr><th>Priority</th><th>Action</th><th>Effort</th><th>Expected Impact</th></tr></thead>
+    <tbody>
+      <tr><td><span class="tag tag-green">High</span></td><td>Add Profit Factor + Expectancy to the HTML report (no strategy change)</td><td>30 min</td><td>Better visibility into strategy quality across periods</td></tr>
+      <tr><td><span class="tag tag-yellow">Medium</span></td><td>Test ORB filter: block BUY entries when close &lt; first15_high (infrastructure already exists)</td><td>1–2 hrs</td><td>Unknown — needs a backtest run to validate</td></tr>
+      <tr><td><span class="tag tag-yellow">Medium</span></td><td>India VIX filter: skip entries on VIX &gt; 20 or &lt; 11</td><td>2–3 hrs</td><td>Unknown — needs VIX data analysis</td></tr>
+      <tr><td><span class="tag tag-red">Low / Skip</span></td><td>15m/30m higher timeframe confirmation</td><td>2–3 hrs</td><td>Likely negative — late entry, blocked best wins (proven by ST age test)</td></tr>
+      <tr><td><span class="tag tag-red">Low / Skip</span></td><td>Volume filter</td><td>N/A</td><td>Cannot be done — Angel One index instruments return volume=0</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Bottom line</h2>
+  <p style="font-size:13px;padding:10px 12px;background:#f7f8fa;border:1px solid #e5e7eb;border-radius:6px">
+    <b>3 of the top 5 suggestions are already fully implemented.</b> The other 2 either can't be done (volume) or would likely hurt performance (15m confirmation). The strategy is more complete than the suggestions imply. The real remaining opportunities are: (1) adding better report metrics, (2) testing the ORB filter that already has its infrastructure built, and (3) optionally adding a VIX regime filter. None of these are urgent — the current strategy is profitable across all time windows.
+  </p>
+
+<footer>Made with IBM Bob</footer>
+</div>
+</body>
+</html>

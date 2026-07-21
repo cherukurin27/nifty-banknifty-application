@@ -149,6 +149,61 @@ def fetch_candles(api, token: str, exchange: str, interval: str = "FIVE_MINUTE",
     return df
 
 
+# ─── India VIX daily fetch ───────────────────────────────────────────────────
+
+def fetch_vix_daily(api, days_back: int = 400) -> dict:
+    """
+    Fetch India VIX daily open values for the last `days_back` calendar days.
+    Returns a dict mapping date string "YYYY-MM-DD" → float (VIX open value).
+
+    Uses config.VIX_TOKEN and config.VIX_EXCHANGE.
+    Returns an empty dict if VIX_FILTER is disabled or fetch fails.
+    """
+    import config as _cfg
+    if not getattr(_cfg, "VIX_FILTER", False):
+        return {}
+
+    token    = getattr(_cfg, "VIX_TOKEN",    "99919000")
+    exchange = getattr(_cfg, "VIX_EXCHANGE", "NSE")
+
+    now      = datetime.datetime.now()
+    end_dt   = now.date()
+    start_dt = end_dt - datetime.timedelta(days=days_back)
+
+    # ONE_DAY interval — single call covers the full range (no 30-day chunking needed)
+    params = {
+        "exchange"    : exchange,
+        "symboltoken" : token,
+        "interval"    : "ONE_DAY",
+        "fromdate"    : f"{start_dt} 09:15",
+        "todate"      : f"{end_dt} 15:30",
+    }
+    try:
+        resp = api.getCandleData(params)
+    except Exception as exc:
+        logger.error("VIX fetch error: %s", exc)
+        return {}
+
+    if not resp or resp.get("status") is False:
+        logger.warning("VIX fetch failed: %s", resp)
+        return {}
+
+    raw = resp.get("data") or []
+    result = {}
+    for candle in raw:
+        try:
+            dt_str = str(pd.to_datetime(candle[0], utc=True)
+                         .tz_convert("Asia/Kolkata")
+                         .date())
+            vix_open = float(candle[1])   # index 1 = open
+            result[dt_str] = vix_open
+        except Exception:
+            continue
+
+    logger.info("VIX daily: %d days fetched", len(result))
+    return result
+
+
 # ─── Latest candle refresh ────────────────────────────────────────────────────
 
 def refresh_candles(api, existing: pd.DataFrame, token: str, exchange: str) -> pd.DataFrame:

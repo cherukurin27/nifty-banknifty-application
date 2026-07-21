@@ -125,6 +125,43 @@ ADX_DEAD_ZONE_HIGH = 38   # dead zone upper bound (exclusive)
 # Opening noise causes false Supertrend flips in first 30 min for SELL direction.
 NIFTY_SELL_START = "10:00"   # no NEW NIFTY SELL entries before 10:00
 
+# ─── India VIX Filter ────────────────────────────────────────────────────────
+#
+# Skips ALL entries (BUY + SELL) on days where India VIX is outside the
+# productive volatility range.
+#
+#   VIX > VIX_SKIP_HIGH (e.g. 20): extreme fear / event-day — whipsaw moves,
+#     SL hit on both sides regardless of direction. Gaps and reversals dominate.
+#
+#   VIX < VIX_SKIP_LOW (e.g. 11): extremely low volatility — moves are too
+#     small to reach targets; mostly EOD exits near entry with tiny gains/losses.
+#
+# ⚠ LIMITATION: Angel One SmartAPI does NOT provide India VIX historical candle
+#   data via getCandleData — all tokens (99919000 etc.) return 0 rows.
+#   VIX is only available as a live quote. Backtesting this filter is not possible
+#   with the current data source. The filter code is wired and ready — if VIX
+#   historical data becomes available via another source, pass it as vix_by_date
+#   to run_backtest(). Keep VIX_FILTER = False until then.
+VIX_FILTER     = False   # cannot backtest — Angel One does not expose VIX candle history
+VIX_SKIP_HIGH  = 20      # skip entries when daily VIX open >= this
+VIX_SKIP_LOW   = 11      # skip entries when daily VIX open <= this
+VIX_TOKEN      = "99919000"   # Angel One token for India VIX (live quote only)
+VIX_EXCHANGE   = "NSE"
+
+# ─── Opening Range Breakout (ORB) Filter ─────────────────────────────────────
+#
+# BUY entries are only allowed when close > first15_high (the high of the first
+# 15 minutes, 09:15–09:30 IST).  This confirms that price has already broken
+# above the opening range — entries during the range are more likely to reverse.
+#
+# SELL entries are NOT filtered — a breakdown below first15_low is already
+# confirmed by Supertrend RED + price < VWAP + price < EMA21.
+#
+# Set ORB_FILTER = False to disable (old behaviour, no change to entry logic).
+# ORB_SYMBOLS controls which instruments the filter applies to.
+ORB_FILTER  = True    # enabled — testing against baseline
+ORB_SYMBOLS = ["NIFTY", "BANKNIFTY"]
+
 # ─── Session Filter (IST) ────────────────────────────────────────────────────
 SESSION_START      = "09:40"   # skip opening 10-min noise (SELL further restricted via NIFTY_SELL_START)
 SESSION_END        = "14:30"
