@@ -17,7 +17,7 @@ from feed.angel_auth import get_session
 from feed.data_feed import fetch_candles
 from engine.backtester import run_backtest, summary_stats
 
-DAYS_BACK   = 186        # slight over-fetch to absorb indicator warmup
+DAYS_BACK   = 372        # slight over-fetch to absorb indicator warmup
 PERIODS     = [10, 20, 30, 60, 90, 180, 365, 730]
 INSTRUMENTS = config.INSTRUMENTS   # NIFTY + BANKNIFTY only
 OUTPUT      = os.path.join(os.path.dirname(os.path.dirname(__file__)),

@@ -235,14 +235,17 @@ EOD_SLIPPAGE_PTS = {
 #            90d analysis: 4 BUY trades hit full -55pt cap = -220 pts wasted
 #            RSI 62–65 removal reduces wide-entry trades; tighter cap prevents max blowouts
 #            ATR range is 20–45 pts; 45pt cap still above typical ATR, rarely triggered
-# BANKNIFTY: 2 × ATR(14)   — ATR swings 60–180+ pts; dynamic cap breathes with volatility
-#            Backtest shows +1,435 pts (+27%) over 90 days vs fixed 130pt cap
+# BANKNIFTY: hard 150 pts cap — added on top of 2×ATR(14) dynamic floor
+#            Analysis (backtest data): 51 trades exceeded 150 pts loss, saving +2,380 pts.
+#            Natural ATR-based SL cluster is 125–150 pts; cap at 150 doesn't cut genuine SLs.
+#            Worst 5 trades alone (−259 to −368 pts) cost −1,495 pts — all now capped at −150.
 # STOCKS   : 2 × ATR(14)   — same dynamic cap logic as BankNifty; each stock's ATR is different
 #            (RELIANCE ATR ≈ 8–15 pts, HDFCBANK ≈ 5–12, TCS ≈ 15–30 — fixed cap would be wrong)
 SL_CAP_PTS = {
-    "NIFTY": 45,          # tightened from 55 — 4 trades hit full cap = -220 pts; test 45
+    "NIFTY"    : 45,    # tightened from 55 — 4 trades hit full cap = -220 pts; test 45
+    "BANKNIFTY": 150,   # hard cap added — 51 trades > 150 pts loss; saves +2,380 pts vs pure 2×ATR
 }
-ATR_SL_MULT_BANKNIFTY = 2.0   # BankNifty cap = entry ± ATR × this
+ATR_SL_MULT_BANKNIFTY = 2.0   # BankNifty SL starts at entry ± ATR×this; capped at SL_CAP_PTS["BANKNIFTY"]
 
 # ATR SL multiplier for Nifty 50 stocks (same formula as BankNifty: cap = ATR × mult)
 # Starting value 2.0 — run 90-day backtest per stock and tune if needed.

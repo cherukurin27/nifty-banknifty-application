@@ -14,7 +14,7 @@ Exit logic (per-candle order):
   2. SL HIT              — candle low/high crosses sl_frozen; exit at sl_frozen (correct fill)
   3. SUPERTREND TRAIL SL — update SL only when no SL hit (BUY: trails up; SELL: trails down)
                            This IS the profit protector — only exits when trend reverses
-  4. HARD SL CAP         — NIFTY: fixed 55pts | BANKNIFTY: dynamic 2×ATR(14)
+  4. HARD SL CAP         — NIFTY: fixed 45pts | BANKNIFTY: min(2×ATR(14), 150pts)
   5. EOD EXIT            — force close 15:15 IST ± EOD_SLIPPAGE_PTS
   6. REVERSE SIGNAL      — 2 consecutive opposite-direction candles (Option B)
 
@@ -105,16 +105,19 @@ def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.D
     day_consec_full_sl = 0   # consecutive full SL-hits today
     circuit_blown      = False  # True = no new entries for rest of day
     # SL cap resolution:
-    #   Nifty        : fixed pts from SL_CAP_PTS
-    #   BankNifty    : dynamic 2×ATR (ATR_SL_MULT_BANKNIFTY)
+    #   Nifty        : fixed pts from SL_CAP_PTS — no ATR mult
+    #   BankNifty    : 2×ATR(14) dynamic floor, hard-capped at SL_CAP_PTS["BANKNIFTY"] (150 pts)
+    #                  cap used = min(ATR × mult, 150) — tighter of the two
     #   Stocks       : dynamic ATR-based from ATR_SL_MULT_STOCKS (default 2.0×)
-    fixed_cap = config.SL_CAP_PTS.get(symbol)   # non-None only for NIFTY
-    if fixed_cap is not None:
-        atr_cap_mult = None                      # Nifty uses fixed pts, not ATR mult
+    fixed_cap = config.SL_CAP_PTS.get(symbol)   # NIFTY=45, BANKNIFTY=150, others=None
+    if symbol in config.SL_CAP_PTS and symbol != "BANKNIFTY":
+        atr_cap_mult = None                      # Nifty: fixed pts only, skip ATR
     elif symbol == "BANKNIFTY":
         atr_cap_mult = getattr(config, "ATR_SL_MULT_BANKNIFTY", 2.0)
+        # fixed_cap (150) acts as hard ceiling — _open() will take min(ATR×mult, fixed_cap)
     else:
         atr_cap_mult = getattr(config, "ATR_SL_MULT_STOCKS", {}).get(symbol, 2.0)
+        fixed_cap = None                         # stocks: pure ATR, no fixed ceiling
 
     warmup = max(config.EMA_SLOW, config.RSI_PERIOD, config.ST_PERIOD) + 10
 
@@ -201,8 +204,11 @@ def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.D
                 closed_pts = _close(trades, open_trade, cdt, sl_frozen, "SL Hit")
                 # ── circuit breaker update ────────────────────────────────────
                 if cb_limit > 0:
-                    cap_now = (round(atr_val * atr_cap_mult, 2)
-                               if atr_cap_mult is not None and atr_val else fixed_cap) or 9999
+                    if atr_cap_mult is not None and atr_val:
+                        atr_c = round(atr_val * atr_cap_mult, 2)
+                        cap_now = (min(atr_c, fixed_cap) if fixed_cap is not None else atr_c)
+                    else:
+                        cap_now = fixed_cap or 9999
                     loss = abs(closed_pts)
                     if closed_pts < 0 and loss >= cb_threshold_pct * cap_now:
                         day_consec_full_sl += 1
@@ -223,7 +229,8 @@ def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.D
 
             # ── 4. Hard SL cap backstop ───────────────────────────────────────
             if atr_cap_mult is not None:
-                live_cap = round(atr_val * atr_cap_mult, 2) if atr_val else open_trade["entry_atr"] * atr_cap_mult
+                atr_c = round(atr_val * atr_cap_mult, 2) if atr_val else round(open_trade["entry_atr"] * atr_cap_mult, 2)
+                live_cap = min(atr_c, fixed_cap) if fixed_cap is not None else atr_c
             else:
                 live_cap = fixed_cap
             if direction == SIGNAL_BUY:
@@ -247,8 +254,11 @@ def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.D
                 closed_pts = _close(trades, open_trade, cdt, close, "Reverse Signal")
                 # ── circuit breaker update after reverse-signal close ─────────
                 if cb_limit > 0:
-                    cap_now = (round(atr_val * atr_cap_mult, 2)
-                               if atr_cap_mult is not None and atr_val else fixed_cap) or 9999
+                    if atr_cap_mult is not None and atr_val:
+                        atr_c = round(atr_val * atr_cap_mult, 2)
+                        cap_now = (min(atr_c, fixed_cap) if fixed_cap is not None else atr_c)
+                    else:
+                        cap_now = fixed_cap or 9999
                     if closed_pts < 0 and abs(closed_pts) >= cb_threshold_pct * cap_now:
                         day_consec_full_sl += 1
                         if day_consec_full_sl >= cb_limit:
@@ -306,8 +316,12 @@ def run_backtest(df_full: pd.DataFrame, symbol: str) -> tuple[pd.DataFrame, pd.D
 
 def _open(symbol, cdate, cdt, close, direction, st_val, atr_val,
           rsi_val, adx_val, vwap_val, fixed_cap, atr_cap_mult) -> dict:
-    cap = (round(atr_val * atr_cap_mult, 2) if atr_cap_mult is not None and atr_val
-           else (fixed_cap or 9999))
+    if atr_cap_mult is not None and atr_val:
+        atr_cap = round(atr_val * atr_cap_mult, 2)
+        # If a fixed ceiling also exists (e.g. BankNifty 150 pts), take the tighter of the two
+        cap = min(atr_cap, fixed_cap) if fixed_cap is not None else atr_cap
+    else:
+        cap = fixed_cap or 9999
     if direction == SIGNAL_BUY:
         sl_cap = round(close - cap, 2)
         # st_val is the Supertrend lower band on a GREEN candle — should be below entry.

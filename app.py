@@ -164,11 +164,18 @@ with tab_live:
             now_date    = now_dt.date()
 
             # SL cap helpers (same logic as backtester)
+            # BankNifty: min(2×ATR, 150) — tighter of dynamic ATR floor and hard ceiling
+            # Nifty    : fixed 45 pts
+            # Stocks   : pure 2×ATR, no fixed ceiling
             fixed_cap    = config.SL_CAP_PTS.get(sym)
-            atr_cap_mult = (None if fixed_cap is not None
-                            else getattr(config, "ATR_SL_MULT_BANKNIFTY", 2.0)
-                            if sym == "BANKNIFTY"
-                            else getattr(config, "ATR_SL_MULT_STOCKS", {}).get(sym, 2.0))
+            if sym == "BANKNIFTY":
+                atr_cap_mult = getattr(config, "ATR_SL_MULT_BANKNIFTY", 2.0)
+                # fixed_cap (150) used as ceiling — applied in cap computation below
+            elif sym in config.SL_CAP_PTS:
+                atr_cap_mult = None   # Nifty: fixed pts only
+            else:
+                atr_cap_mult = getattr(config, "ATR_SL_MULT_STOCKS", {}).get(sym, 2.0)
+                fixed_cap    = None   # stocks: pure ATR, no ceiling
 
             # ── A. Manage existing open trade ────────────────────────────────
             if ot is not None:
@@ -226,9 +233,10 @@ with tab_live:
                         else:
                             ot["sl"] = round(min(ot["sl"], st_val), 2)
 
-                    # 5. Apply hard SL cap
+                    # 5. Apply hard SL cap — BankNifty: min(ATR×mult, 150); Nifty: fixed pts
                     if atr_cap_mult is not None:
-                        live_cap = round(atr_val * atr_cap_mult, 2) if atr_val else ot["entry_atr"] * atr_cap_mult
+                        atr_c = round(atr_val * atr_cap_mult, 2) if atr_val else round(ot["entry_atr"] * atr_cap_mult, 2)
+                        live_cap = min(atr_c, fixed_cap) if fixed_cap is not None else atr_c
                     else:
                         live_cap = fixed_cap
                     if direction == SIGNAL_BUY:
@@ -248,8 +256,11 @@ with tab_live:
                 direction    = sig["signal"]
                 entry_price  = sig["entry"]
                 sl_initial   = sig["sl"]
-                cap          = (fixed_cap if fixed_cap is not None
-                                else round(atr_val * atr_cap_mult, 2) if atr_cap_mult and atr_val else 9999)
+                if atr_cap_mult is not None and atr_val:
+                    atr_cap = round(atr_val * atr_cap_mult, 2)
+                    cap = min(atr_cap, fixed_cap) if fixed_cap is not None else atr_cap
+                else:
+                    cap = fixed_cap or 9999
                 if direction == SIGNAL_BUY:
                     sl_cap = round(entry_price - cap, 2)
                     sl     = max(sl_initial, sl_cap) if sl_initial else sl_cap

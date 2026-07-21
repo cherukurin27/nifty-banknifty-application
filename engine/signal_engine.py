@@ -166,7 +166,7 @@ def evaluate_signal(df: pd.DataFrame, symbol: str = "") -> dict:
         return _no_signal("Insufficient data")
 
     row = df.iloc[-1]   # latest completed candle
-    # Stamp st_history (last 4 st_signals) for per-symbol ST confirm check
+    # Stamp st_history (last N st_signals) for per-symbol ST confirm check
     max_confirm = max(
         int(getattr(config, "ST_CONFIRM_CANDLES_NIFTY", config.ST_CONFIRM_CANDLES)),
         int(config.ST_CONFIRM_CANDLES),
@@ -310,11 +310,13 @@ def evaluate_signal(df: pd.DataFrame, symbol: str = "") -> dict:
         "candle_time": candle_ts,
     }
 
-    # ── SL cap: fixed pts for Nifty, ATR-based for BankNifty and all stocks ──
-    if symbol in config.SL_CAP_PTS:
+    # ── SL cap: fixed pts for Nifty; min(2×ATR, 150) for BankNifty; ATR-based for stocks ──
+    if symbol == "BANKNIFTY":
+        atr_cap = round(atr_val * getattr(config, "ATR_SL_MULT_BANKNIFTY", 2.0), 2)
+        hard_ceil = config.SL_CAP_PTS.get("BANKNIFTY")
+        cap = min(atr_cap, hard_ceil) if hard_ceil is not None else atr_cap
+    elif symbol in config.SL_CAP_PTS:
         cap = config.SL_CAP_PTS[symbol]
-    elif symbol == "BANKNIFTY":
-        cap = round(atr_val * getattr(config, "ATR_SL_MULT_BANKNIFTY", 2.0), 2)
     else:
         mult = getattr(config, "ATR_SL_MULT_STOCKS", {}).get(symbol, 2.0)
         cap  = round(atr_val * mult, 2)
@@ -410,9 +412,10 @@ def eval_entry_signal(row) -> str:
     else:
         confirm = int(getattr(config, "ST_CONFIRM_CANDLES", 1))
 
+    st_hist = row.get("st_history")  # list [prev1, prev2, prev3, ...] or None
+
     if confirm >= 2:
         # Use st_history if available (list of prev N st_signals), else fall back to prev_st_sig
-        st_hist = row.get("st_history")  # list [prev1, prev2, prev3, ...] or None
         if st_hist is not None:
             # Need `confirm-1` previous candles to all match current st_sig
             needed = st_hist[: confirm - 1]
