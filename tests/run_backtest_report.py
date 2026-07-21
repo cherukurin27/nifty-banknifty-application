@@ -17,8 +17,10 @@ from feed.angel_auth import get_session
 from feed.data_feed import fetch_candles, fetch_vix_daily
 from engine.backtester import run_backtest, summary_stats
 
-DAYS_BACK   = 372        # slight over-fetch to absorb indicator warmup
+DAYS_BACK   = 186        # slight over-fetch to absorb indicator warmup
 PERIODS     = [10, 20, 30, 60, 90, 180, 365, 730]
+# Largest standard period that fits within the fetched window (used for KPI cards / labels).
+REPORT_PERIOD = max(p for p in PERIODS if p <= DAYS_BACK)
 INSTRUMENTS = config.INSTRUMENTS   # NIFTY + BANKNIFTY only
 OUTPUT      = os.path.join(os.path.dirname(os.path.dirname(__file__)),
                            "nifty-bank-nifty-full-backtest-report.html")
@@ -195,8 +197,11 @@ def _html(data: dict) -> str:
     syms = list(data["results"].keys())
 
     # ── KPI cards per symbol ─────────────────────────────────────────────────
+    rp  = data["report_period"]   # e.g. 180 when DAYS_BACK=186
+    rpd = f"{rp}d"                # e.g. "180d"
+
     def kpi_cards(sym):
-        s = data["results"][sym]["period_stats"].get("90", {})
+        s = data["results"][sym]["period_stats"].get(str(rp), {})
         if not s:
             return "<p>No trades in period.</p>"
         wr   = s.get("win_rate_pct", 0)
@@ -220,7 +225,7 @@ def _html(data: dict) -> str:
         rf_disp   = f"{rf:.2f}" if rf != float("inf") else "∞"
         return f"""
         <div class="kpi-row">
-          <div class="kpi"><div class="kpi-val">{tot}</div><div class="kpi-lbl">Trades (90d)</div></div>
+          <div class="kpi"><div class="kpi-val">{tot}</div><div class="kpi-lbl">Trades ({rpd})</div></div>
           <div class="kpi"><div class="kpi-val">{wr}%</div><div class="kpi-lbl">Win Rate</div></div>
           <div class="kpi"><div class="kpi-val" style="color:{color}">{pts:+.0f}</div><div class="kpi-lbl">Net Points</div></div>
           <div class="kpi"><div class="kpi-val">{rr}</div><div class="kpi-lbl">Risk:Reward</div></div>
@@ -463,11 +468,11 @@ def _html(data: dict) -> str:
           <p class="muted">Data: {dr.get('from','')} to {dr.get('to','')} &mdash; {dr.get('candles',0):,} candles</p>
           {kpi_cards(sym)}
           <h3>Period Slices</h3>{period_table(sym)}
-          <h3>BUY vs SELL (90d)</h3>{direction_table(sym)}
+          <h3>BUY vs SELL ({rpd})</h3>{direction_table(sym)}
           <h3>Monthly Breakdown</h3>{monthly_table(sym)}
           <h3>Monte Carlo Simulation (all trades)</h3>{monte_carlo_section(sym)}
           <h3>Out-of-Sample Test (70/30 split)</h3>{oos_section(sym)}
-          <h3>Exit Reasons (90d)</h3>{exit_table(sym)}
+          <h3>Exit Reasons ({rpd})</h3>{exit_table(sym)}
           <h3>Exit Time-of-Day Analysis</h3>{exit_time_table(sym)}
           <h3>Equity Curve (all trades)</h3>{equity_svg(sym)}
           <h3>All Trades</h3>{trades_table(sym)}
@@ -523,7 +528,7 @@ def _html(data: dict) -> str:
 <body>
 <div class="wrap">
   <h1>Nifty / BankNifty Backtest Report</h1>
-  <p class="muted">Generated: {data['generated']} &nbsp;|&nbsp; 90-day walk-forward, 5-min candles, Angel One live data</p>
+  <p class="muted">Generated: {data['generated']} &nbsp;|&nbsp; {rpd} walk-forward, 5-min candles, Angel One live data</p>
   <nav>{nav_links} <a href="#config">Config</a></nav>
   {sections}
   {cfg_section}
@@ -581,17 +586,17 @@ def main():
         trades_full["exit_time"]  = trades_full["exit_time"].astype(str)
 
         ps = {str(p): _stats_for_period(trades_full, p) for p in PERIODS}
-        s90 = ps.get("90", {})
-        if s90:
-            pf_disp = (f"{s90.get('profit_factor',0):.2f}"
-                       if s90.get('profit_factor',0) != float("inf") else "∞")
-            print(f"    90d -> {s90.get('total_trades',0)} trades | "
-                  f"WR {s90.get('win_rate_pct',0)}% | "
-                  f"Net {s90.get('total_points',0):+.1f} pts | "
-                  f"RR {s90.get('risk_reward',0)} | "
-                  f"MDD {s90.get('max_drawdown',0):.1f} | "
+        s_rp = ps.get(str(REPORT_PERIOD), {})
+        if s_rp:
+            pf_disp = (f"{s_rp.get('profit_factor',0):.2f}"
+                       if s_rp.get('profit_factor',0) != float("inf") else "∞")
+            print(f"    {REPORT_PERIOD}d -> {s_rp.get('total_trades',0)} trades | "
+                  f"WR {s_rp.get('win_rate_pct',0)}% | "
+                  f"Net {s_rp.get('total_points',0):+.1f} pts | "
+                  f"RR {s_rp.get('risk_reward',0)} | "
+                  f"MDD {s_rp.get('max_drawdown',0):.1f} | "
                   f"PF {pf_disp} | "
-                  f"Exp {s90.get('expectancy',0):+.1f} pts/trade")
+                  f"Exp {s_rp.get('expectancy',0):+.1f} pts/trade")
 
         monthly_data = _monthly(trades_full)
         results[sym] = {
@@ -608,7 +613,8 @@ def main():
         print()
 
     data = {
-        "generated" : datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "generated"     : datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "report_period" : REPORT_PERIOD,
         "config"    : {
             "RSI_BUY_LOW"              : config.RSI_BUY_LOW,
             "RSI_BUY_HIGH"             : config.RSI_BUY_HIGH,
