@@ -57,6 +57,46 @@ st.markdown("""
     .loss-clr    { color:#ef4444; }
     .neu-clr     { color:#3b82d4; }
     .warn-clr    { color:#f59e0b; }
+    /* filter status grid */
+    .filter-grid { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+    .filter-pill { display:inline-flex; align-items:center; gap:5px; font-size:11px;
+                   font-weight:600; padding:4px 9px; border-radius:12px; }
+    .filter-pass { background:#0d3321; color:#22c55e; border:1px solid #22c55e44; }
+    .filter-fail { background:#3b0f0f; color:#ef4444; border:1px solid #ef444444; }
+    .filter-na   { background:#1a1d26; color:#8b949e; border:1px solid #30363d; }
+    /* session badge */
+    .session-badge { display:inline-block; font-size:11px; font-weight:700;
+                     padding:3px 10px; border-radius:10px; margin-left:10px;
+                     vertical-align:middle; }
+    .sess-pre   { background:#1a1d26; color:#8b949e;  border:1px solid #444; }
+    .sess-live  { background:#0d2e1a; color:#22c55e;  border:1px solid #22c55e66; }
+    .sess-noent { background:#2e2200; color:#f59e0b;  border:1px solid #f59e0b66; }
+    .sess-eod   { background:#2e0f0f; color:#ef4444;  border:1px solid #ef444466; }
+    /* hold duration / SL distance badges */
+    .info-pill  { font-size:11px; color:#8b949e; background:#1a1d26;
+                  border:1px solid #30363d; border-radius:8px; padding:3px 8px;
+                  display:inline-block; }
+    .info-pill b { color:#e6edf3; }
+    /* regime pulse bar */
+    .pulse-bar  { display:flex; gap:12px; flex-wrap:wrap; margin:6px 0 14px;
+                  padding:10px 14px; background:#1a1d26; border-radius:10px;
+                  border:1px solid #30363d; }
+    .pulse-sym  { display:flex; flex-direction:column; gap:2px; min-width:160px; }
+    .pulse-name { font-size:11px; color:#8b949e; font-weight:600; }
+    .pulse-val  { font-size:13px; font-weight:700; }
+    .regime-trend    { color:#22c55e; }
+    .regime-border   { color:#f59e0b; }
+    .regime-sideways { color:#ef4444; }
+    .regime-dead     { color:#f97316; }
+    /* dead-zone warning banner */
+    .dead-banner { background:#2e2200; border:1px solid #f59e0b66; border-radius:8px;
+                   padding:8px 14px; font-size:12px; color:#f59e0b;
+                   margin-bottom:10px; font-weight:600; }
+    /* heatmap table */
+    .heat-table { width:100%; border-collapse:collapse; font-size:12px; }
+    .heat-table th { background:#1a1d26; color:#8b949e; padding:5px 8px;
+                     border:1px solid #30363d; text-align:center; font-weight:700; }
+    .heat-table td { padding:5px 8px; border:1px solid #30363d; text-align:center; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -122,6 +162,67 @@ with tab_live:
         unsafe_allow_html=True,
     )
     st.markdown("---")
+
+    # ── Regime Pulse Bar — rendered after data refresh (below) ───────────────
+    def _regime_pulse_bar():
+        """One-line ADX regime indicator for all symbols. Shown before signal cards."""
+        adx_max   = config.ADX_MAX if isinstance(config.ADX_MAX, (int, float)) else 60
+        dz_lo     = getattr(config, "ADX_DEAD_ZONE_LOW",  None)
+        dz_hi     = getattr(config, "ADX_DEAD_ZONE_HIGH", None)
+        sym_html  = ""
+        for sym in config.INSTRUMENTS:
+            sig   = st.session_state.signals.get(sym, {})
+            adx_v = sig.get("adx")
+            rsi_v = sig.get("rsi")
+            st_s  = sig.get("st_value")
+            if adx_v is None:
+                regime_cls  = "regime-sideways"
+                regime_lbl  = "No data"
+                regime_icon = "—"
+            else:
+                in_dead = (dz_lo is not None and dz_hi is not None
+                           and dz_lo <= adx_v < dz_hi)
+                if in_dead:
+                    regime_cls  = "regime-dead"
+                    regime_lbl  = f"Dead Zone (ADX {adx_v:.1f})"
+                    regime_icon = "🟠"
+                elif adx_v > adx_max:
+                    regime_cls  = "regime-dead"
+                    regime_lbl  = f"Overextended (ADX {adx_v:.1f})"
+                    regime_icon = "🟠"
+                elif adx_v >= config.ADX_THRESHOLD + 6:
+                    regime_cls  = "regime-trend"
+                    regime_lbl  = f"Trending (ADX {adx_v:.1f})"
+                    regime_icon = "🟢"
+                elif adx_v >= config.ADX_THRESHOLD:
+                    regime_cls  = "regime-border"
+                    regime_lbl  = f"Borderline (ADX {adx_v:.1f})"
+                    regime_icon = "🟡"
+                else:
+                    regime_cls  = "regime-sideways"
+                    regime_lbl  = f"Sideways (ADX {adx_v:.1f})"
+                    regime_icon = "🔴"
+
+            rsi_txt = f"RSI {rsi_v:.1f}" if rsi_v else "RSI —"
+            ot      = st.session_state.open_trades.get(sym)
+            trade_txt = "📌 IN TRADE" if ot else ""
+            sym_html += (
+                f"<div class='pulse-sym'>"
+                f"<div class='pulse-name'>{sym} {trade_txt}</div>"
+                f"<div class='pulse-val {regime_cls}'>{regime_icon} {regime_lbl}"
+                f"&nbsp;<span style='font-size:11px;font-weight:400;color:#8b949e;'>"
+                f"| {rsi_txt}</span></div>"
+                f"</div>"
+            )
+        now_str = datetime.datetime.now().strftime("%H:%M:%S")
+        st.markdown(
+            f"<div class='pulse-bar'>{sym_html}"
+            f"<div class='pulse-sym' style='margin-left:auto;text-align:right;'>"
+            f"<div class='pulse-name'>Last refresh</div>"
+            f"<div class='pulse-val' style='color:#8b949e;font-size:12px;'>{now_str}</div>"
+            f"</div></div>",
+            unsafe_allow_html=True,
+        )
 
     # ── refresh data & manage open trades ────────────────────────────────────
     def _refresh_live():
@@ -304,6 +405,154 @@ with tab_live:
             st.session_state.api = None
             st.rerun()
 
+    # ── Regime Pulse Bar ─────────────────────────────────────────────────────
+    _regime_pulse_bar()
+
+    # ── helpers ───────────────────────────────────────────────────────────────
+    def _session_badge() -> str:
+        """Return HTML badge showing current session state."""
+        now = datetime.datetime.now()
+        t   = now.time()
+        def _pt(s): h, m = map(int, s.split(":")); return datetime.time(h, m)
+        if t < _pt(config.SESSION_START):
+            return "<span class='session-badge sess-pre'>⏳ Pre-Session</span>"
+        if t <= _pt(config.NO_NEW_ENTRY_AFTER):
+            return "<span class='session-badge sess-live'>🟢 Session Active</span>"
+        if t <= _pt(config.SESSION_END):
+            return "<span class='session-badge sess-noent'>⚠️ No New Entries</span>"
+        if t <= _pt(config.FORCE_EXIT):
+            return "<span class='session-badge sess-eod'>🔴 EOD — Manage Only</span>"
+        return "<span class='session-badge sess-eod'>🔴 After Hours</span>"
+
+    def _st_streak_label(sym: str, sig: dict) -> str:
+        """Return e.g. '2/4' ST streak label for BUY, and '1/2' for SELL, using st_history."""
+        # st_history is a list of recent st_signals: [prev1, prev2, ...] newest-first.
+        # It is populated by evaluate_signal() but lives on the raw sig dict only when
+        # the signal engine puts it there.  We use the candle df from session state.
+        df = st.session_state.candles.get(sym, pd.DataFrame())
+        if df.empty or len(df) < 2:
+            return ""
+        from engine.indicators import add_indicators as _ai
+        df_i = _ai(df.copy())
+        # count consecutive same-direction candles going backward from last closed candle
+        st_vals = df_i["st_signal"].tolist()
+        if len(st_vals) < 2:
+            return ""
+        last_sig = int(st_vals[-2] or 0)   # last CLOSED candle
+        if last_sig == 0:
+            return ""
+        streak = 0
+        for s in reversed(st_vals[:-1]):   # walk backwards through closed candles
+            if int(s or 0) == last_sig:
+                streak += 1
+            else:
+                break
+        if sym == "NIFTY":
+            required = int(getattr(config, "ST_CONFIRM_CANDLES_NIFTY", config.ST_CONFIRM_CANDLES))
+        else:
+            required = int(getattr(config, "ST_CONFIRM_CANDLES", 1))
+        direction_word = "GREEN" if last_sig == 1 else "RED"
+        colour = "#22c55e" if last_sig == 1 else "#ef4444"
+        confirmed = streak >= required
+        tick = "✅" if confirmed else "⏳"
+        return (f"<span style='font-size:11px;font-weight:600;color:{colour};'>"
+                f"{tick} ST {direction_word}: {min(streak, required)}/{required} candles</span>")
+
+    def _filter_grid_buy(sym: str, sig: dict) -> str:
+        """Build filter-status pill row for BUY conditions, with ST streak progress."""
+        entry  = sig.get("entry") or 0
+        rsi_v  = sig.get("rsi")  or 0
+        adx_v  = sig.get("adx")  or 0
+        vwap_v = sig.get("vwap") or 0
+        ema_s  = sig.get("ema_slow") or 0
+        from engine.signal_engine import _rsi_buy_low, _rsi_buy_high
+        rsi_lo = _rsi_buy_low(sym)
+        rsi_hi = _rsi_buy_high(sym)
+        adx_max = config.ADX_MAX if isinstance(config.ADX_MAX, (int, float)) else 60
+        adx_dz_lo = getattr(config, "ADX_DEAD_ZONE_LOW", None)
+        adx_dz_hi = getattr(config, "ADX_DEAD_ZONE_HIGH", None)
+        in_dead = (adx_dz_lo is not None and adx_dz_hi is not None
+                   and adx_dz_lo <= adx_v < adx_dz_hi)
+        # derive ST BUY ok from latest candle's st_signal (positive = GREEN)
+        df = st.session_state.candles.get(sym, pd.DataFrame())
+        st_buy_ok = None
+        if not df.empty and len(df) >= 2:
+            from engine.indicators import add_indicators as _ai2
+            _df_i = _ai2(df.copy())
+            _st   = int(_df_i["st_signal"].iloc[-2] or 0)
+            st_buy_ok = (_st == 1)
+        filters = [
+            ("ST GREEN",        st_buy_ok),
+            (f"RSI {rsi_lo:.0f}–{rsi_hi:.0f}", rsi_lo <= rsi_v <= rsi_hi if rsi_v else None),
+            ("Price > EMA21",   entry > ema_s  if entry and ema_s  else None),
+            ("Price > VWAP",    entry > vwap_v if entry and vwap_v else None),
+            (f"ADX {config.ADX_THRESHOLD}–{adx_max}",
+             config.ADX_THRESHOLD <= adx_v <= adx_max and not in_dead if adx_v else None),
+        ]
+        passed = sum(1 for _, ok in filters if ok is True)
+        counter_clr = "#22c55e" if passed == 5 else ("#f59e0b" if passed >= 3 else "#8b949e")
+        counter_html = (f"<span style='font-size:11px;font-weight:700;color:{counter_clr};"
+                        f"margin-left:6px;'>{passed}/5 passing</span>")
+        pills = ""
+        for label, ok in filters:
+            if ok is True:
+                pills += f"<span class='filter-pill filter-pass'>✅ {label}</span>"
+            elif ok is False:
+                pills += f"<span class='filter-pill filter-fail'>❌ {label}</span>"
+            else:
+                pills += f"<span class='filter-pill filter-na'>— {label}</span>"
+        return (f"<div style='display:flex;align-items:center;gap:0;margin-bottom:4px;'>"
+                f"<span style='font-size:11px;color:#8b949e;font-weight:600;'>BUY filters</span>"
+                f"{counter_html}</div>"
+                f"<div class='filter-grid'>{pills}</div>")
+
+    def _filter_grid_sell(sym: str, sig: dict) -> str:
+        """Build filter-status pill row for SELL conditions, with ST streak progress."""
+        entry  = sig.get("entry") or 0
+        rsi_v  = sig.get("rsi")  or 0
+        adx_v  = sig.get("adx")  or 0
+        vwap_v = sig.get("vwap") or 0
+        ema_s  = sig.get("ema_slow") or 0
+        from engine.signal_engine import _rsi_sell_high
+        rsi_hi_sell = _rsi_sell_high(sym)
+        adx_max = config.ADX_MAX if isinstance(config.ADX_MAX, (int, float)) else 60
+        adx_dz_lo = getattr(config, "ADX_DEAD_ZONE_LOW", None)
+        adx_dz_hi = getattr(config, "ADX_DEAD_ZONE_HIGH", None)
+        in_dead = (adx_dz_lo is not None and adx_dz_hi is not None
+                   and adx_dz_lo <= adx_v < adx_dz_hi)
+        df = st.session_state.candles.get(sym, pd.DataFrame())
+        st_sell_ok = None
+        if not df.empty and len(df) >= 2:
+            from engine.indicators import add_indicators as _ai3
+            _df_i3 = _ai3(df.copy())
+            _st3   = int(_df_i3["st_signal"].iloc[-2] or 0)
+            st_sell_ok = (_st3 == -1)
+        filters = [
+            ("ST RED",          st_sell_ok),
+            (f"RSI {config.RSI_SELL_LOW}–{rsi_hi_sell:.0f}",
+             config.RSI_SELL_LOW <= rsi_v <= rsi_hi_sell if rsi_v else None),
+            ("Price < EMA21",   entry < ema_s  if entry and ema_s  else None),
+            ("Price < VWAP",    entry < vwap_v if entry and vwap_v else None),
+            (f"ADX {config.ADX_THRESHOLD}–{adx_max}",
+             config.ADX_THRESHOLD <= adx_v <= adx_max and not in_dead if adx_v else None),
+        ]
+        passed = sum(1 for _, ok in filters if ok is True)
+        counter_clr = "#22c55e" if passed == 5 else ("#f59e0b" if passed >= 3 else "#8b949e")
+        counter_html = (f"<span style='font-size:11px;font-weight:700;color:{counter_clr};"
+                        f"margin-left:6px;'>{passed}/5 passing</span>")
+        pills = ""
+        for label, ok in filters:
+            if ok is True:
+                pills += f"<span class='filter-pill filter-pass'>✅ {label}</span>"
+            elif ok is False:
+                pills += f"<span class='filter-pill filter-fail'>❌ {label}</span>"
+            else:
+                pills += f"<span class='filter-pill filter-na'>— {label}</span>"
+        return (f"<div style='display:flex;align-items:center;gap:0;margin-bottom:4px;margin-top:10px;'>"
+                f"<span style='font-size:11px;color:#8b949e;font-weight:600;'>SELL filters</span>"
+                f"{counter_html}</div>"
+                f"<div class='filter-grid'>{pills}</div>")
+
     # ── signal cards ─────────────────────────────────────────────────────────
     def _signal_card(sym: str, sig: dict):
         ot        = st.session_state.open_trades.get(sym)
@@ -334,25 +583,52 @@ with tab_live:
             css        = "signal-buy" if ot_dir == SIGNAL_BUY else "signal-sell"
             clr        = "buy-color"  if ot_dir == SIGNAL_BUY else "sell-color"
 
+            # SL distance from live price
+            sl_dist_pts = round(abs(live_px - ot_sl), 1) if live_px and ot_sl else "—"
+            sl_dist_pct = f"{round(abs(live_px - ot_sl) / live_px * 100, 2):.2f}%" if live_px and ot_sl else "—"
+
+            # Risk to reward on open trade
+            if ot_target and ot_target != "—" and isinstance(ot_target, (int, float)):
+                reward_pts = abs(ot_target - ot_entry)
+                risk_pts   = abs(ot_entry - ot_sl) if ot_sl else 1
+                rr_display = f"1 : {round(reward_pts / risk_pts, 2)}" if risk_pts else "—"
+            else:
+                rr_display = "—"
+
+            # Hold duration
+            hold_str = "—"
+            if ot_time:
+                held = datetime.datetime.now() - ot_time
+                held_mins = int(held.total_seconds() // 60)
+                hold_str = f"{held_mins // 60}h {held_mins % 60}m" if held_mins >= 60 else f"{held_mins}m"
+
+            # ATR of the entry candle
+            entry_atr = ot.get("entry_atr")
+            atr_disp  = f"{entry_atr:.1f}" if entry_atr else (f"{rsi_v or '—'}")
+
             st.markdown(f"""
             <div class="{css}">
-              <div class="big-label">{sym} — IN TRADE</div>
+              <div class="big-label">{sym} — IN TRADE {_session_badge()}</div>
               <div class="big-value {clr}">{'🟢 LONG (BUY)' if ot_dir == SIGNAL_BUY else '🔴 SHORT (SELL)'}</div>
               <div class="metric-row">
                 <div class="metric-box"><div class="mbox-label">Entry</div><div class="mbox-val">{ot_entry}</div></div>
                 <div class="metric-box"><div class="mbox-label">🔄 Trailing SL</div><div class="mbox-val" style="color:#f59e0b">{ot_sl}</div></div>
+                <div class="metric-box"><div class="mbox-label">SL Distance</div><div class="mbox-val" style="color:#f59e0b">{sl_dist_pts} pts ({sl_dist_pct})</div></div>
                 <div class="metric-box"><div class="mbox-label">Target</div><div class="mbox-val">{ot_target}</div></div>
+                <div class="metric-box"><div class="mbox-label">Risk : Reward</div><div class="mbox-val">{rr_display}</div></div>
                 <div class="metric-box"><div class="mbox-label">Live Price</div><div class="mbox-val">{live_px}</div></div>
-                <div class="metric-box"><div class="mbox-label">Unrealised</div><div class="mbox-val" style="color:{unr_clr}">{unrealised:+.1f}</div></div>
-                <div class="metric-box"><div class="mbox-label">RSI</div><div class="mbox-val">{rsi_v or '—'}</div></div>
-                <div class="metric-box"><div class="mbox-label">ADX</div><div class="mbox-val">{adx_v or '—'}</div></div>
+                <div class="metric-box"><div class="mbox-label">Unrealised P&L</div><div class="mbox-val" style="color:{unr_clr}">{unrealised:+.1f} pts</div></div>
+                <div class="metric-box"><div class="mbox-label">Hold Duration</div><div class="mbox-val">{hold_str}</div></div>
+                <div class="metric-box"><div class="mbox-label">RSI (live)</div><div class="mbox-val">{rsi_v or '—'}</div></div>
+                <div class="metric-box"><div class="mbox-label">ADX (live)</div><div class="mbox-val">{adx_v or '—'}</div></div>
                 <div class="metric-box"><div class="mbox-label">Supertrend</div><div class="mbox-val">{st_v or '—'}</div></div>
+                <div class="metric-box"><div class="mbox-label">ATR at Entry</div><div class="mbox-val">{entry_atr or '—'}</div></div>
               </div>
               <div style="margin-top:8px;font-size:12px;color:#8b949e;">
-                Entry: {str(ot_time)[11:16] if ot_time else '—'}
-                &nbsp;|&nbsp; Holding until: SL hit, reverse signal, or 15:15 IST
+                Entry time: <b style="color:#e6edf3">{str(ot_time)[11:16] if ot_time else '—'}</b>
+                &nbsp;|&nbsp; Exits: SL trail hit &nbsp;·&nbsp; reverse signal &nbsp;·&nbsp; 15:15 IST force close
               </div>
-              <div class="ts">Candle: {ct or 'N/A'} &nbsp;|&nbsp; Refreshed: {datetime.datetime.now().strftime('%H:%M:%S')}</div>
+              <div class="ts">Last candle: {ct or 'N/A'} &nbsp;|&nbsp; Refreshed: {datetime.datetime.now().strftime('%H:%M:%S')}</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -376,40 +652,123 @@ with tab_live:
         vwap_ok_sell = entry and vwap_v and entry < vwap_v
         vwap_status  = "✅ Above VWAP" if vwap_ok_buy else ("✅ Below VWAP" if vwap_ok_sell else "❌ Near VWAP")
 
+        # SL risk distance
+        sl_dist_pts = f"{round(abs(entry - sl), 1)} pts" if entry and sl else "—"
+        # Target R:R
+        if entry and sl and target:
+            risk   = abs(entry - sl)
+            reward = abs(target - entry)
+            rr_txt = f"1 : {round(reward / risk, 2)}" if risk else "—"
+        else:
+            rr_txt = "—"
+
+        # ── PDH / PDL / ORB context from candle data ─────────────────────────
+        pdh_val = pdl_val = orb_high = None
+        df_live = st.session_state.candles.get(sym, pd.DataFrame())
+        if not df_live.empty and len(df_live) >= 2:
+            from engine.indicators import add_indicators as _ai_pdh, prev_day_levels, first_15min_range
+            _df_ctx = _ai_pdh(df_live.copy())
+            _df_ctx = prev_day_levels(_df_ctx)
+            _df_ctx = first_15min_range(_df_ctx)
+            _last   = _df_ctx.iloc[-2]   # last closed candle
+            pdh_val  = _last.get("prev_day_high")
+            pdl_val  = _last.get("prev_day_low")
+            orb_high = _last.get("first15_high")
+            import numpy as _np
+            if pdh_val  and _np.isnan(float(pdh_val)):  pdh_val  = None
+            if pdl_val  and _np.isnan(float(pdl_val)):  pdl_val  = None
+            if orb_high and _np.isnan(float(orb_high)): orb_high = None
+
+        def _level_box(label: str, val, current: float) -> str:
+            if val is None or current is None:
+                return f"<div class='metric-box'><div class='mbox-label'>{label}</div><div class='mbox-val'>—</div></div>"
+            val_r = round(float(val), 1)
+            cur_r = round(float(current), 1)
+            above = cur_r >= val_r
+            arrow = f"<span style='color:#22c55e;font-size:10px;'>▲ above</span>" if above else f"<span style='color:#ef4444;font-size:10px;'>▼ below</span>"
+            return (f"<div class='metric-box'><div class='mbox-label'>{label}</div>"
+                    f"<div class='mbox-val'>{val_r} {arrow}</div></div>")
+
+        pdh_box  = _level_box("Prev Day High", pdh_val,  entry)
+        pdl_box  = _level_box("Prev Day Low",  pdl_val,  entry)
+        orb_box  = _level_box("ORB High (15m)", orb_high, entry)
+
+        # ── ST streak label ───────────────────────────────────────────────────
+        st_streak_html = _st_streak_label(sym, sig)
+
+        # ── Dead-zone / time-rule banner ──────────────────────────────────────
+        dead_banner_html = ""
+        _reason_lc = reason.lower()
+        if "dead zone" in _reason_lc or "expiry day" in _reason_lc or "no new entries" in _reason_lc or "opening noise" in _reason_lc:
+            dead_banner_html = f"<div class='dead-banner'>⏰ Blocked: {reason}</div>"
+
+        # Build filter pill rows
+        buy_pill_html  = _filter_grid_buy(sym, sig)
+        sell_pill_html = _filter_grid_sell(sym, sig)
+
+        # Session state badge
+        sess_html = _session_badge()
+
+        # Trades left indicator colour
+        left_clr = "#22c55e" if left >= 3 else ("#f59e0b" if left >= 1 else "#ef4444")
+
         st.markdown(f"""
         <div class="{css}">
-          <div class="big-label">{sym}</div>
+          {dead_banner_html}
+          <div class="big-label">{sym} {sess_html}</div>
           <div class="big-value {clr}">{lbl}</div>
+          <div style="margin-top:6px;">{st_streak_html}</div>
           <div class="metric-row">
-            <div class="metric-box"><div class="mbox-label">Entry</div><div class="mbox-val">{entry or '—'}</div></div>
+            <div class="metric-box"><div class="mbox-label">Entry (last close)</div><div class="mbox-val">{entry or '—'}</div></div>
             <div class="metric-box"><div class="mbox-label">Initial SL</div><div class="mbox-val">{sl or '—'}</div></div>
+            <div class="metric-box"><div class="mbox-label">SL Risk (pts)</div><div class="mbox-val" style="color:#f59e0b">{sl_dist_pts}</div></div>
             <div class="metric-box"><div class="mbox-label">Target</div><div class="mbox-val">{target or '—'}</div></div>
+            <div class="metric-box"><div class="mbox-label">Risk : Reward</div><div class="mbox-val">{rr_txt}</div></div>
             <div class="metric-box"><div class="mbox-label">RSI</div><div class="mbox-val">{rsi_v or '—'}</div></div>
             <div class="metric-box"><div class="mbox-label">ADX</div><div class="mbox-val">{adx_v or '—'}</div></div>
             <div class="metric-box"><div class="mbox-label">VWAP</div><div class="mbox-val">{vwap_v or '—'}</div></div>
-            <div class="metric-box"><div class="mbox-label">Supertrend</div><div class="mbox-val">{st_v or '—'}</div></div>
-            <div class="metric-box"><div class="mbox-label">EMA 9 / 21</div><div class="mbox-val">{ema_f or '—'} / {ema_s or '—'}</div></div>
-            <div class="metric-box"><div class="mbox-label">Trades Left</div><div class="mbox-val">{left}</div></div>
+            <div class="metric-box"><div class="mbox-label">Supertrend line</div><div class="mbox-val">{st_v or '—'}</div></div>
+            <div class="metric-box"><div class="mbox-label">EMA 9</div><div class="mbox-val">{ema_f or '—'}</div></div>
+            <div class="metric-box"><div class="mbox-label">EMA 21</div><div class="mbox-val">{ema_s or '—'}</div></div>
+            {pdh_box}{pdl_box}{orb_box}
+            <div class="metric-box"><div class="mbox-label">Trades Left</div><div class="mbox-val" style="color:{left_clr}">{left}</div></div>
           </div>
-          <div style="margin-top:10px;font-size:12px;color:#8b949e;">
-            <b>VWAP Filter:</b> {vwap_status} &nbsp;|&nbsp; <b>Status:</b> {reason}
+          <div style="margin-top:10px;">
+            {buy_pill_html}
+            {sell_pill_html}
           </div>
-          <div class="ts">Candle: {ct or 'N/A'} &nbsp;|&nbsp; Refreshed: {datetime.datetime.now().strftime('%H:%M:%S')}</div>
+          <div style="margin-top:8px;font-size:12px;color:#8b949e;">
+            <b>VWAP:</b> {vwap_status} &nbsp;|&nbsp; <b>Reason:</b> {reason}
+          </div>
+          <div class="ts">Last candle: {ct or 'N/A'} &nbsp;|&nbsp; Refreshed: {datetime.datetime.now().strftime('%H:%M:%S')}</div>
         </div>
         """, unsafe_allow_html=True)
 
     def _mini_chart(df: pd.DataFrame, sym: str, sig: dict, ot: dict | None):
-        """Full candlestick chart: candles + Supertrend + EMA21 + VWAP + RSI + ADX panels."""
+        """Full candlestick chart: candles + Supertrend + EMA9/21 + VWAP + RSI + ADX+DI panels."""
         try:
             import plotly.graph_objects as go
             from plotly.subplots import make_subplots
-            from engine.indicators import add_indicators
+            from engine.indicators import add_indicators, ema as _ema, atr as _atr
+            import numpy as np
 
             if df.empty or len(df) < 10:
                 return
 
             df_c = add_indicators(df.copy()).copy()
             df_c["datetime"] = pd.to_datetime(df_c["datetime"])
+
+            # Compute +DI / −DI for the ADX panel
+            period = config.ADX_PERIOD
+            up_move   = df_c["high"].diff()
+            down_move = -df_c["low"].diff()
+            plus_dm   = np.where((up_move > down_move) & (up_move > 0),   up_move,   0.0)
+            minus_dm  = np.where((down_move > up_move) & (down_move > 0), down_move, 0.0)
+            _atr_s    = _atr(df_c, period)
+            plus_di   = 100 * pd.Series(plus_dm,  index=df_c.index).ewm(alpha=1/period, adjust=False).mean() / _atr_s
+            minus_di  = 100 * pd.Series(minus_dm, index=df_c.index).ewm(alpha=1/period, adjust=False).mean() / _atr_s
+            df_c["+di"] = plus_di
+            df_c["-di"] = minus_di
 
             # Keep last 2 trading days so user can pan into yesterday
             today = df_c["datetime"].iloc[-1].date()
@@ -427,8 +786,9 @@ with tab_live:
             fig = make_subplots(
                 rows=3, cols=1,
                 shared_xaxes=True,
-                row_heights=[0.60, 0.20, 0.20],
+                row_heights=[0.58, 0.21, 0.21],
                 vertical_spacing=0.03,
+                subplot_titles=("", "RSI (14)", "ADX + DI"),
             )
 
             # ── Row 1: Candlesticks ───────────────────────────────────────────
@@ -457,18 +817,25 @@ with tab_live:
                 line=dict(color="#ef4444", width=2),
             ), row=1, col=1)
 
-            # EMA21
+            # EMA9 (fast) — teal thin line
+            fig.add_trace(go.Scatter(
+                x=df_c["datetime"], y=df_c["ema_fast"],
+                mode="lines", name="EMA 9",
+                line=dict(color="#2dd4bf", width=1, dash="dot"),
+            ), row=1, col=1)
+
+            # EMA21 (slow) — amber
             fig.add_trace(go.Scatter(
                 x=df_c["datetime"], y=df_c["ema_slow"],
                 mode="lines", name="EMA 21",
-                line=dict(color="#f59e0b", width=1, dash="dot"),
+                line=dict(color="#f59e0b", width=1.2, dash="dot"),
             ), row=1, col=1)
 
             # VWAP
             fig.add_trace(go.Scatter(
                 x=df_c["datetime"], y=df_c["vwap"],
                 mode="lines", name="VWAP",
-                line=dict(color="#818cf8", width=1, dash="dash"),
+                line=dict(color="#818cf8", width=1.2, dash="dash"),
             ), row=1, col=1)
 
             # ── Entry / SL / Target lines (if in trade) ───────────────────────
@@ -509,36 +876,72 @@ with tab_live:
                 line=dict(color="#a78bfa", width=1.5),
             ), row=2, col=1)
 
-            # RSI bands — 3 clean lines only
+            # RSI buy zone shading (between RSI_BUY_LOW and RSI_BUY_HIGH)
+            from engine.signal_engine import _rsi_buy_high as _rbh
+            rsi_buy_hi = _rbh(sym)
+            fig.add_hrect(
+                y0=config.RSI_BUY_LOW, y1=rsi_buy_hi,
+                fillcolor="rgba(34,197,94,0.08)", line_width=0,
+                row=2, col=1,
+            )
+            # RSI sell zone shading (between RSI_SELL_LOW and RSI_SELL_HIGH)
+            from engine.signal_engine import _rsi_sell_high as _rsh
+            rsi_sell_hi = _rsh(sym)
+            fig.add_hrect(
+                y0=config.RSI_SELL_LOW, y1=rsi_sell_hi,
+                fillcolor="rgba(239,68,68,0.08)", line_width=0,
+                row=2, col=1,
+            )
+            # RSI reference lines
             for level, color in [
-                (config.RSI_SELL_HIGH, "#ef4444"),   # top of SELL zone
+                (rsi_sell_hi,          "#ef4444"),   # top of SELL zone
                 (50,                   "#57606a"),   # midline
                 (config.RSI_BUY_LOW,   "#22c55e"),   # bottom of BUY zone
             ]:
                 fig.add_hline(y=level, line_dash="dot", line_color=color,
                               line_width=1, row=2, col=1)
 
-            # ── Row 3: ADX ────────────────────────────────────────────────────
+            # ── Row 3: ADX + +DI / −DI ────────────────────────────────────────
             fig.add_trace(go.Scatter(
                 x=df_c["datetime"], y=df_c["adx"],
                 mode="lines", name="ADX",
-                line=dict(color="#38bdf8", width=1.5),
+                line=dict(color="#38bdf8", width=1.8),
             ), row=3, col=1)
+            fig.add_trace(go.Scatter(
+                x=df_c["datetime"], y=df_c["+di"],
+                mode="lines", name="+DI",
+                line=dict(color="#22c55e", width=1, dash="dot"),
+            ), row=3, col=1)
+            fig.add_trace(go.Scatter(
+                x=df_c["datetime"], y=df_c["-di"],
+                mode="lines", name="−DI",
+                line=dict(color="#ef4444", width=1, dash="dot"),
+            ), row=3, col=1)
+            # ADX threshold and max lines
             fig.add_hline(y=config.ADX_THRESHOLD, line_dash="dot",
                           line_color="#f59e0b", line_width=1, row=3, col=1)
             fig.add_hline(y=config.ADX_MAX, line_dash="dot",
                           line_color="#ef4444", line_width=1, row=3, col=1)
+            # ADX dead zone shading
+            adx_dz_lo = getattr(config, "ADX_DEAD_ZONE_LOW", None)
+            adx_dz_hi = getattr(config, "ADX_DEAD_ZONE_HIGH", None)
+            if adx_dz_lo and adx_dz_hi:
+                fig.add_hrect(
+                    y0=adx_dz_lo, y1=adx_dz_hi,
+                    fillcolor="rgba(245,158,11,0.10)", line_width=0,
+                    row=3, col=1,
+                )
 
             # ── Layout ────────────────────────────────────────────────────────
             fig.update_layout(
-                height=520,
+                height=560,
                 paper_bgcolor="#0f1117",
                 plot_bgcolor="#0f1117",
                 font=dict(color="#e6edf3", size=11),
                 showlegend=True,
                 legend=dict(orientation="h", y=1.02, x=0,
                             bgcolor="rgba(0,0,0,0)", font=dict(size=10)),
-                margin=dict(l=10, r=80, t=10, b=10),
+                margin=dict(l=10, r=80, t=24, b=10),
                 xaxis_rangeslider_visible=False,
             )
             for row_n in [1, 2, 3]:
@@ -553,9 +956,9 @@ with tab_live:
                 )
 
             # Y-axis labels
-            fig.update_yaxes(title_text="Price",  title_font_size=10, row=1, col=1)
-            fig.update_yaxes(title_text="RSI",    title_font_size=10, row=2, col=1)
-            fig.update_yaxes(title_text="ADX",    title_font_size=10, row=3, col=1)
+            fig.update_yaxes(title_text="Price",      title_font_size=10, row=1, col=1)
+            fig.update_yaxes(title_text="RSI",        title_font_size=10, row=2, col=1)
+            fig.update_yaxes(title_text="ADX / DI",   title_font_size=10, row=3, col=1)
 
             st.plotly_chart(fig, use_container_width=True, config={
                 "displayModeBar": True,
@@ -742,22 +1145,48 @@ with tab_bt:
             total_pts_clr = "win-clr" if s["total_points"] >= 0 else "loss-clr"
             wr_clr        = "win-clr" if s["win_rate_pct"] >= 55 else ("warn-clr" if s["win_rate_pct"] >= 45 else "loss-clr")
 
-            # ── stat cards ────────────────────────────────────────────────────
-            cards = [
+            # Compute extra stats not in summary_stats
+            _wins_pts  = trades.loc[trades["result"] == "WIN",  "points"]
+            _loss_pts  = trades.loc[trades["result"] == "LOSS", "points"]
+            gross_profit = _wins_pts.sum()  if not _wins_pts.empty else 0
+            gross_loss   = abs(_loss_pts.sum()) if not _loss_pts.empty else 0
+            profit_factor = round(gross_profit / gross_loss, 2) if gross_loss else "∞"
+            pf_clr  = "win-clr" if isinstance(profit_factor, str) or profit_factor >= 1.5 else (
+                       "warn-clr" if profit_factor >= 1.0 else "loss-clr")
+            expectancy = round(s["total_points"] / s["total_trades"], 2) if s["total_trades"] else 0
+            exp_clr = "win-clr" if expectancy > 0 else "loss-clr"
+
+            # ── stat cards row 1 ──────────────────────────────────────────────
+            cards1 = [
                 ("Total Trades",      s["total_trades"],               "neu-clr"),
                 ("Wins ✅",           s["wins"],                       "win-clr"),
                 ("Losses ❌",         s["losses"],                     "loss-clr"),
                 ("Breakeven",         s["breakeven"],                  "neu-clr"),
                 ("Win Rate",          f"{s['win_rate_pct']}%",         wr_clr),
                 ("Total Points",      s["total_points"],               total_pts_clr),
+            ]
+            cols1 = st.columns(len(cards1))
+            for col, (lbl, val, clr) in zip(cols1, cards1):
+                col.markdown(
+                    f"<div class='stat-card'>"
+                    f"<div class='stat-val {clr}'>{val}</div>"
+                    f"<div class='stat-lbl'>{lbl}</div>"
+                    f"</div>", unsafe_allow_html=True)
+
+            st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+
+            # ── stat cards row 2 ──────────────────────────────────────────────
+            cards2 = [
                 ("Avg Win (pts)",     s["avg_win_pts"],                "win-clr"),
                 ("Avg Loss (pts)",    s["avg_loss_pts"],               "loss-clr"),
                 ("Risk : Reward",     s["risk_reward"],                "neu-clr"),
+                ("Profit Factor",     profit_factor,                   pf_clr),
+                ("Expectancy (pts)",  expectancy,                      exp_clr),
                 ("Max Drawdown",      s.get("max_drawdown", "—"),      "warn-clr"),
                 ("Max Consec Loss",   s.get("max_consec_loss", "—"),   "warn-clr"),
             ]
-            cols = st.columns(len(cards))
-            for col, (lbl, val, clr) in zip(cols, cards):
+            cols2 = st.columns(len(cards2))
+            for col, (lbl, val, clr) in zip(cols2, cards2):
                 col.markdown(
                     f"<div class='stat-card'>"
                     f"<div class='stat-val {clr}'>{val}</div>"
@@ -765,6 +1194,33 @@ with tab_bt:
                     f"</div>", unsafe_allow_html=True)
 
             st.markdown("<br>", unsafe_allow_html=True)
+
+            # ── Win vs Loss hold time ─────────────────────────────────────────
+            if "entry_time" in trades.columns and "exit_time" in trades.columns:
+                _t = trades.copy()
+                _t["_entry_dt"] = pd.to_datetime(_t["entry_time"], errors="coerce")
+                _t["_exit_dt"]  = pd.to_datetime(_t["exit_time"],  errors="coerce")
+                _t["_hold_min"] = (_t["_exit_dt"] - _t["_entry_dt"]).dt.total_seconds() / 60
+                _wins_h  = _t.loc[_t["result"] == "WIN",  "_hold_min"].dropna()
+                _loss_h  = _t.loc[_t["result"] == "LOSS", "_hold_min"].dropna()
+                def _fmtmin(m):
+                    m = int(m)
+                    return f"{m // 60}h {m % 60}m" if m >= 60 else f"{m}m"
+                avg_win_hold  = _fmtmin(_wins_h.mean())  if len(_wins_h)  else "—"
+                avg_loss_hold = _fmtmin(_loss_h.mean())  if len(_loss_h)  else "—"
+                _ratio = (f"1 : {round(_wins_h.mean() / _loss_h.mean(), 1)}"
+                          if len(_wins_h) and len(_loss_h) and _loss_h.mean() > 0 else "—")
+                _ht1, _ht2, _ht3 = st.columns(3)
+                _ht1.markdown(
+                    f"<div class='stat-card'><div class='stat-val win-clr'>{avg_win_hold}</div>"
+                    f"<div class='stat-lbl'>Avg WIN hold time</div></div>", unsafe_allow_html=True)
+                _ht2.markdown(
+                    f"<div class='stat-card'><div class='stat-val loss-clr'>{avg_loss_hold}</div>"
+                    f"<div class='stat-lbl'>Avg LOSS hold time</div></div>", unsafe_allow_html=True)
+                _ht3.markdown(
+                    f"<div class='stat-card'><div class='stat-val neu-clr'>{_ratio}</div>"
+                    f"<div class='stat-lbl'>Win hold : Loss hold ratio</div></div>", unsafe_allow_html=True)
+                st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
 
             # ── charts ────────────────────────────────────────────────────────
             ch1, ch2 = st.columns(2)
@@ -779,46 +1235,105 @@ with tab_bt:
                 dpnl["date"] = dpnl["date"].astype(str)
                 st.bar_chart(dpnl.set_index("date")["Points"], height=200, use_container_width=True)
 
-            # ── trade table ───────────────────────────────────────────────────
-            st.markdown("**📋 Trade-by-Trade Log**")
-            disp = trades[[
-                "date", "direction", "entry_time", "entry_price",
-                "exit_time", "exit_price", "exit_reason",
-                "points", "result", "rsi", "adx", "vwap",
-            ]].copy()
-            disp["entry_time"] = pd.to_datetime(disp["entry_time"]).dt.strftime("%H:%M")
-            disp["exit_time"]  = pd.to_datetime(disp["exit_time"]).dt.strftime("%H:%M")
-
-            def _cr(val):
-                if val == "WIN":  return "background-color:#0d3321;color:#22c55e"
-                if val == "LOSS": return "background-color:#3b0f0f;color:#ef4444"
-                return ""
-            def _cp(val):
-                try: return "color:#22c55e" if float(val) > 0 else ("color:#ef4444" if float(val) < 0 else "")
-                except: return ""
-
-            st.dataframe(
-                disp.style.map(_cr, subset=["result"]).map(_cp, subset=["points"]),
-                use_container_width=True, hide_index=True)
-
-            # ── buy/sell breakdown ────────────────────────────────────────────
-            st.markdown("**Buy vs Sell breakdown**")
-            d1, d2 = st.columns(2)
+            # ── buy/sell breakdown + exit reason breakdown ────────────────────
+            st.markdown("**Buy vs Sell — and Exit Reason Breakdown**")
+            d1, d2, d3 = st.columns(3)
             for col_w, direction in zip([d1, d2], ["BUY", "SELL"]):
                 sub = trades[trades["direction"] == direction]
                 if sub.empty:
                     col_w.info(f"No {direction} trades.")
                     continue
-                w  = (sub["result"] == "WIN").sum()
-                l  = (sub["result"] == "LOSS").sum()
-                wr = round(w / len(sub) * 100, 1)
+                w   = (sub["result"] == "WIN").sum()
+                l   = (sub["result"] == "LOSS").sum()
+                wr  = round(w / len(sub) * 100, 1)
                 pts = round(sub["points"].sum(), 2)
+                avg = round(sub["points"].mean(), 1)
+                pts_clr = "#22c55e" if pts >= 0 else "#ef4444"
                 col_w.markdown(
-                    f"**{direction}** — {len(sub)} trades &nbsp;|&nbsp; "
+                    f"**{direction}** — {len(sub)} trades\n\n"
                     f"<span style='color:#22c55e'>{w}W</span> / "
-                    f"<span style='color:#ef4444'>{l}L</span> &nbsp;|&nbsp; "
-                    f"Win rate: **{wr}%** &nbsp;|&nbsp; Points: **{pts}**",
+                    f"<span style='color:#ef4444'>{l}L</span> &nbsp; "
+                    f"WR: **{wr}%** &nbsp; Net: <span style='color:{pts_clr}'><b>{pts} pts</b></span> "
+                    f"&nbsp; Avg: {avg} pts/trade",
                     unsafe_allow_html=True)
+
+            # Exit reason summary
+            with d3:
+                if "exit_reason" in trades.columns:
+                    er = (trades.groupby("exit_reason")
+                          .agg(Count=("points","count"), Points=("points","sum"))
+                          .reset_index())
+                    er["Points"] = er["Points"].round(1)
+                    er["Avg pts"] = (er["Points"] / er["Count"]).round(1)
+                    st.markdown("**Exit Reasons**")
+                    st.dataframe(er, use_container_width=True, hide_index=True, height=140)
+
+            # ── trade table ───────────────────────────────────────────────────
+            with st.expander("📋 Trade-by-Trade Log", expanded=False):
+                avail_cols = ["date", "direction", "entry_time", "entry_price",
+                              "exit_time", "exit_price", "exit_reason",
+                              "points", "result", "rsi", "adx", "vwap"]
+                disp = trades[[c for c in avail_cols if c in trades.columns]].copy()
+                if "entry_time" in disp.columns:
+                    disp["entry_time"] = pd.to_datetime(disp["entry_time"]).dt.strftime("%H:%M")
+                if "exit_time" in disp.columns:
+                    disp["exit_time"]  = pd.to_datetime(disp["exit_time"]).dt.strftime("%H:%M")
+
+                def _cr(val):
+                    if val == "WIN":  return "background-color:#0d3321;color:#22c55e"
+                    if val == "LOSS": return "background-color:#3b0f0f;color:#ef4444"
+                    return ""
+                def _cp(val):
+                    try: return "color:#22c55e" if float(val) > 0 else ("color:#ef4444" if float(val) < 0 else "")
+                    except: return ""
+
+                st.dataframe(
+                    disp.style.map(_cr, subset=["result"]).map(_cp, subset=["points"]),
+                    use_container_width=True, hide_index=True)
+
+            # ── per-hour-slot Win Rate heatmap ────────────────────────────────
+            if "entry_time" in trades.columns:
+                with st.expander("⏱ Entry Time Slot Analysis — Win Rate by 30-min window", expanded=True):
+                    _sl = trades.copy()
+                    _sl["_et"] = pd.to_datetime(_sl["entry_time"], errors="coerce")
+                    _sl["_slot"] = _sl["_et"].dt.floor("30min").dt.strftime("%H:%M")
+                    _slot_grp = (
+                        _sl.groupby("_slot")
+                        .agg(
+                            Trades  = ("points",  "count"),
+                            Wins    = ("result",  lambda x: (x == "WIN").sum()),
+                            Points  = ("points",  "sum"),
+                        )
+                        .reset_index()
+                        .rename(columns={"_slot": "Slot"})
+                    )
+                    _slot_grp["WR %"]    = (_slot_grp["Wins"] / _slot_grp["Trades"] * 100).round(1)
+                    _slot_grp["Avg pts"] = (_slot_grp["Points"] / _slot_grp["Trades"]).round(1)
+                    _slot_grp["Points"]  = _slot_grp["Points"].round(1)
+
+                    def _slot_wr_style(val):
+                        try:
+                            v = float(val)
+                            if v >= 60:   return "background-color:#0d3321;color:#22c55e;font-weight:700"
+                            if v >= 45:   return "color:#f59e0b"
+                            return "background-color:#3b0f0f;color:#ef4444;font-weight:700"
+                        except: return ""
+                    def _slot_pts_style(val):
+                        try: return "color:#22c55e" if float(val) > 0 else ("color:#ef4444" if float(val) < 0 else "")
+                        except: return ""
+
+                    st.dataframe(
+                        _slot_grp.style
+                            .map(_slot_wr_style,  subset=["WR %"])
+                            .map(_slot_pts_style, subset=["Points", "Avg pts"]),
+                        use_container_width=True, hide_index=True,
+                    )
+                    st.caption(
+                        "Slots with WR < 45% highlighted red. "
+                        "Compare against active dead-zone rules: "
+                        f"BNKN {config.BNKN_SKIP_SLOT_START}–{config.BNKN_SKIP_SLOT_END} · "
+                        f"NIFTY BUY {config.NIFTY_BUY_SKIP_START}–{config.NIFTY_BUY_SKIP_END}."
+                    )
 
             # ── diagnostics expander ──────────────────────────────────────────
             if not diag.empty:
@@ -990,6 +1505,23 @@ with tab_journal:
                 st.markdown("**📈 Cumulative Equity Curve**")
                 eq_all = pd.DataFrame({"Cumulative Points": jdf["points"].cumsum().values})
                 st.line_chart(eq_all, height=220, use_container_width=True)
+
+            # ── Rolling Win Rate ──────────────────────────────────────────────
+            st.markdown("**📉 Rolling Win Rate — 5-trade & 10-trade windows**")
+            _wr_series = (jdf["result"] == "WIN").astype(int).reset_index(drop=True)
+            _rwr_df = pd.DataFrame()
+            if len(_wr_series) >= 5:
+                _rwr_df["WR 5-trade (%)"]  = (_wr_series.rolling(5).mean()  * 100).round(1)
+            if len(_wr_series) >= 10:
+                _rwr_df["WR 10-trade (%)"] = (_wr_series.rolling(10).mean() * 100).round(1)
+            if not _rwr_df.empty and not _rwr_df.dropna(how="all").empty:
+                st.line_chart(_rwr_df.dropna(how="all"), height=200, use_container_width=True)
+                st.caption(
+                    "Rising = consistently more wins. Falling = regime shift or parameter decay. "
+                    "50% = breakeven. The 2-week validation goal: both lines stable at or above 50%."
+                )
+            else:
+                st.caption("Need at least 5 trades to plot rolling win rate.")
 
             # ── Per-symbol daily breakdown ────────────────────────────────────
             st.markdown("**📊 Daily P&L by Symbol**")

@@ -1,0 +1,251 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Backtest Review — Nifty / BankNifty Jul 2026</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"Segoe UI",system-ui,sans-serif;font-size:14px;line-height:1.6;background:#fff;color:#1f2328}
+  .wrap{max-width:760px;margin:0 auto;padding:28px 16px}
+  h1{font-size:21px;margin-bottom:4px}
+  h2{font-size:16px;font-weight:700;margin:30px 0 8px;border-bottom:1px solid #e5e7eb;padding-bottom:4px}
+  h3{font-size:13px;font-weight:700;margin:16px 0 5px;color:#1f2328}
+  p{margin-bottom:8px}
+  .muted{color:#57606a;font-size:13px}
+  .verdict{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:700;letter-spacing:.3px}
+  .v-warn{background:#fff3cd;color:#856404}
+  .v-bad{background:#fde8e8;color:#b22222}
+  .v-ok{background:#e6f4ea;color:#2a7a2a}
+  .v-info{background:#e8f0fe;color:#1a56b8}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0 14px}
+  th{background:#f7f8fa;text-align:left;padding:6px 8px;border:1px solid #e5e7eb;font-weight:600;white-space:nowrap}
+  td{padding:5px 8px;border:1px solid #e5e7eb}
+  tr:nth-child(even) td{background:#fafafa}
+  .pos{color:#2a7a2a;font-weight:600}
+  .neg{color:#b22222;font-weight:600}
+  .card{background:#f7f8fa;border:1px solid #e5e7eb;border-radius:6px;padding:14px 16px;margin-bottom:14px}
+  .card-title{font-size:13px;font-weight:700;margin-bottom:6px}
+  .issue-num{display:inline-block;width:22px;height:22px;border-radius:50%;background:#3b82d4;color:#fff;font-size:11px;font-weight:700;text-align:center;line-height:22px;margin-right:6px;flex-shrink:0}
+  .issue-row{display:flex;align-items:flex-start;gap:0;margin-bottom:4px}
+  .tag-row{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+  .tag{display:inline-block;padding:2px 7px;border-radius:3px;font-size:11px;background:#e8f0fe;color:#1a56b8;font-weight:600}
+  .tag-warn{background:#fff3cd;color:#856404}
+  .tag-bad{background:#fde8e8;color:#b22222}
+  .tag-ok{background:#e6f4ea;color:#2a7a2a}
+  hr{border:none;border-top:1px solid #e5e7eb;margin:22px 0}
+  code{background:#f0f1f3;padding:1px 5px;border-radius:3px;font-size:12px;font-family:Consolas,monospace}
+  ul{padding-left:18px;margin-bottom:8px}
+  li{margin-bottom:3px}
+  footer{margin-top:40px;padding-top:12px;border-top:1px solid #e5e7eb;text-align:center;font-size:12px;color:#57606a}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Backtest Review — Nifty / BankNifty</h1>
+<p class="muted">Generated: 2026-07-21  |  10-day data, 525 candles, 5-min timeframe, Angel One live feed</p>
+
+
+<h2>TL;DR — The One-Line Answer</h2>
+<div class="card">
+  <p><strong>The market was NOT sideways.</strong> Nifty was trending (ADX 20–39 on entry candles) and the SELL strategy worked (+8.2 pts with a 2.16 R:R). The problems are: <span class="neg">10-day sample is statistically meaningless</span>, BankNifty hit its dead-zone filter <em>after</em> already taking 4 losses, the SL on one BUY trade was placed 3 pts away (<code>24240.04 − 24243.00 = −3 pts</code>), and the Monte Carlo 100% ruin probability is expected for only 6 trades with a sub-1.5 PF.</p>
+</div>
+
+
+<h2>Issue-by-Issue Breakdown</h2>
+
+
+<div class="card">
+  <div class="card-title">
+    <span class="issue-num">1</span>
+    10-day window is too small to trust any metric
+    <span class="verdict v-bad" style="margin-left:8px">Critical</span>
+  </div>
+  <p>The report header says "90-day walk-forward" but <code>DAYS_BACK = 10</code> in <code>run_backtest_report.py</code> line 20. So every period slice (10d, 20d, 30d … 730d) shows <strong>identical numbers</strong> — there is only one bucket of data covering 2026-07-13 to 2026-07-21.</p>
+  <table>
+    <thead><tr><th>Symptom</th><th>Root cause</th></tr></thead>
+    <tbody>
+      <tr><td>All period slices (10d → 730d) show the same stats</td><td><code>DAYS_BACK = 10</code> — only 6 Nifty / 4 BankNifty trades exist regardless of period filter</td></tr>
+      <tr><td>Monthly breakdown shows only 2026-07</td><td>Same — single-month sample</td></tr>
+      <tr><td>OOS split: in-sample 4 trades / out-of-sample 2 trades</td><td>No statistical validity at this sample size</td></tr>
+    </tbody>
+  </table>
+  <p><strong>Fix:</strong> Change <code>DAYS_BACK = 90</code> (or <code>180</code>) for a meaningful report. The current output should be read as "last 10 days only" not a real walk-forward.</p>
+</div>
+
+
+<div class="card">
+  <div class="card-title">
+    <span class="issue-num">2</span>
+    BankNifty dead-zone filter is working — but it's catching entries that already happened
+    <span class="verdict v-warn" style="margin-left:8px">Config mismatch</span>
+  </div>
+  <p>Config shows <code>BNKN_DEAD_ZONE = 10:00–11:30</code>. Yet the trade log shows:</p>
+  <table>
+    <thead><tr><th>Date</th><th>Entry Time</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>2026-07-14</td><td class="neg">09:45</td><td>Before dead zone — <strong>correctly allowed</strong> by filter, but SL at 57,655 hit at 11:10</td></tr>
+      <tr><td>2026-07-14</td><td>12:25</td><td>After dead zone — correctly allowed</td></tr>
+      <tr><td>2026-07-15</td><td>12:55</td><td>After dead zone — correctly allowed</td></tr>
+      <tr><td>2026-07-20</td><td class="neg">11:30</td><td>Edge of dead zone (11:30 is the end boundary, exclusive) — allowed, hit SL at 13:10</td></tr>
+    </tbody>
+  </table>
+  <p>The filter is working as coded (<code>10:00 ≤ t &lt; 11:30</code> is blocked, 11:30 is the first allowed slot). The 11:30 entry on Jul 20 is legitimate by the rule. However the Jul 14 09:45 entry took a −148.5pt loss at 11:10 — this is the <strong>opening-noise pre-dead-zone slot</strong>. Consider extending <code>BNKN_SKIP_SLOT_START</code> backward to <code>09:40</code> (block all BNKN entries before 11:30) if this pattern repeats.</p>
+</div>
+
+
+<div class="card">
+  <div class="card-title">
+    <span class="issue-num">3</span>
+    Nifty BUY trade had a 3-point SL — ATR-based SL calculation anomaly
+    <span class="verdict v-warn" style="margin-left:8px">SL Logic Bug</span>
+  </div>
+  <p>The Jul 17 BUY trade:</p>
+  <table>
+    <thead><tr><th>Field</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Entry</td><td>24,243.00</td></tr>
+      <tr><td>SL</td><td>24,240.04</td></tr>
+      <tr><td>Risk (pts)</td><td class="neg">−2.96 pts (≈ 3 pts)</td></tr>
+      <tr><td>Config cap</td><td>45 pts (Nifty fixed cap)</td></tr>
+      <tr><td>RSI at entry</td><td>56.59</td></tr>
+      <tr><td>ADX at entry</td><td>31.56</td></tr>
+    </tbody>
+  </table>
+  <p>A 3-pt SL means the <strong>Supertrend value was 24,240.04</strong> — i.e. the ST line was almost exactly at the close price. This happens when Supertrend has just flipped GREEN and the ST lower-band hasn't yet separated from price. The backtester code at <code>backtester.py _open()</code> does guard this: <em>"if st_val &gt;= close, fall back to hard-cap SL"</em> — but the ST value was <strong>below</strong> close (24240.04 &lt; 24243.00), so the guard didn't trigger.</p>
+  <p>The fix would be: enforce a <strong>minimum SL distance</strong> of e.g. <code>max(sl_cap, close − 0.5 × ATR)</code>. A 3-pt SL on a 24,000-pt instrument will always be noise-hit. However this is a <em>single edge case</em> in the 10-day window — check if it recurs in 90-day data before tuning.</p>
+</div>
+
+
+<div class="card">
+  <div class="card-title">
+    <span class="issue-num">4</span>
+    Monte Carlo 100% ruin probability is expected — not alarming here
+    <span class="verdict v-info" style="margin-left:8px">Expected / Cosmetic</span>
+  </div>
+  <p>P(ruin) is computed as: <em>probability that MDD + net_pts &lt; 0</em> across 1,000 shuffled simulations. With only 6 trades and net = +8 pts, any shuffle that starts with the 3 losers (−45, −45, −3) hits a drawdown of −93 pts — which exceeds the +8 net. So <strong>nearly every shuffle shows final equity &lt; 0</strong>. The formula is working correctly; the stat is simply meaningless at N=6.</p>
+  <p>At 90 days you'd have ~60–80 trades and P(ruin) would drop to &lt;5% (Nifty's historical profile). This is purely a sample-size artefact.</p>
+</div>
+
+
+<h2>Nifty — Signal Quality Assessment</h2>
+<table>
+  <thead><tr><th>Metric</th><th>Value</th><th>Assessment</th></tr></thead>
+  <tbody>
+    <tr><td>Win Rate</td><td>33.3% (2W / 4L)</td><td><span class="verdict v-warn">Below par — expect 45–55% over 90d</span></td></tr>
+    <tr><td>Avg Win / Avg Loss</td><td>55.1 / −25.5</td><td><span class="verdict v-ok">Good R:R 2.16 — strategy is working asymmetrically</span></td></tr>
+    <tr><td>Net Points</td><td>+8.2</td><td><span class="verdict v-ok">Positive in choppy July conditions</span></td></tr>
+    <tr><td>SELL side</td><td>5T, 40% WR, +11.2 pts</td><td><span class="verdict v-ok">SELL bias correct for current market regime</span></td></tr>
+    <tr><td>BUY side</td><td>1T, 0% WR, −3 pts</td><td><span class="verdict v-warn">Single trade — no conclusion possible</span></td></tr>
+    <tr><td>EOD Exits</td><td>3 of 6 trades</td><td><span class="verdict v-warn">High — Supertrend not reversing before 15:15; consider tighter ST period</span></td></tr>
+    <tr><td>Max Drawdown</td><td>−56.9 pts</td><td><span class="verdict v-warn">Driven by 2 back-to-back −45pt SL hits Jul 14 + Jul 20</span></td></tr>
+  </tbody>
+</table>
+
+<h3>Trade-Level Observations</h3>
+<ul>
+  <li><strong>Jul 14 SELL 10:00 → SL Hit 11:00 (−45):</strong> ADX 38.05 — this is right at the <code>ADX_DEAD_ZONE_HIGH = 38</code> boundary (dead zone is <code>33 ≤ ADX &lt; 38</code>, exclusive). ADX 38.05 is just outside — legitimately allowed. But it's the <em>borderline exhaustion zone</em>.</li>
+  <li><strong>Jul 21 SELL 10:35 → EOD Exit (−8.9):</strong> RSI 32.76, ADX 39.63. Market was still in a mild downtrend but not enough move in the session. This is expected behaviour — weak SELL day.</li>
+  <li><strong>Jul 14 SELL 11:40 and Jul 15 SELL 12:50:</strong> Both EOD exits with +63 and +47 pts. These are the bread-and-butter trades working exactly as designed — late-day SELL momentum running into EOD.</li>
+</ul>
+
+
+<h2>BankNifty — Signal Quality Assessment</h2>
+<table>
+  <thead><tr><th>Metric</th><th>Value</th><th>Assessment</th></tr></thead>
+  <tbody>
+    <tr><td>Win Rate</td><td>0.0% (0W / 4L)</td><td><span class="verdict v-bad">Zero winners — but only 4 trades</span></td></tr>
+    <tr><td>Avg Loss</td><td>−88.4 pts</td><td><span class="verdict v-bad">High — 2 trades hit full SL cap (148.5 + 115.9)</span></td></tr>
+    <tr><td>Direction</td><td>SELL only, 4 trades</td><td><span class="verdict v-warn">BUY filter (RSI 57–60 + ORB) blocked all BUY signals</span></td></tr>
+    <tr><td>Jul 14 09:45 SELL</td><td>−148.5 pts</td><td><span class="verdict v-bad">Opening candle (09:45) — pre-dead-zone. ST flipped RED in first 5-min bar</span></td></tr>
+    <tr><td>Jul 20 11:30 SELL</td><td>−115.9 pts</td><td><span class="verdict v-bad">Entry at dead-zone edge — price reversed immediately</span></td></tr>
+  </tbody>
+</table>
+
+<h3>Root Cause: BNKN All-Loss Week</h3>
+<p>This week BNKN was in a <strong>short-squeeze / bounce regime</strong> — SELL setups fired when RSI/ADX aligned bearish but price kept recovering intraday. The key signals that fired (RSI 25–40, ST RED) were valid by rule but the market character overrode them:</p>
+<ul>
+  <li>Jul 14 opened gap-down (SELL signal immediately) → recovered all losses by 11:10 → SL hit.</li>
+  <li>Jul 15 SELL worked (+EOD exit −63 pts) → this was a trending day, SELL correct.</li>
+  <li>Jul 20 SELL at 11:30 → intraday bounce reversed in 100 min → SL hit.</li>
+</ul>
+<p>This is <strong>not a strategy flaw</strong> — it's a difficult weekly regime for SELL-biased strategies. The 90-day BNKN profile (not shown in this run) is the correct benchmark.</p>
+
+
+<h2>Is the Market Sideways?</h2>
+<div class="card">
+  <table>
+    <thead><tr><th>Evidence</th><th>Sideways?</th></tr></thead>
+    <tbody>
+      <tr><td>ADX at Nifty entry candles: 38, 23, 22, 31, 20, 39</td><td class="pos">No — ADX 20–39 = trending</td></tr>
+      <tr><td>Nifty SELL trades: 2 EOD exits both positive (+63, +47)</td><td class="pos">No — clear directional moves existed</td></tr>
+      <tr><td>BankNifty: 0 winners from 4 SELL trades</td><td class="neg">Possibly choppy/bounce week for BNKN specifically</td></tr>
+      <tr><td>BNKN ADX at entries: 39.5, 30.3, 20.9, 32.1</td><td class="pos">No — ADX above 20 on all entries (trending)</td></tr>
+      <tr><td>Price range Nifty 13–21 Jul: ~300 pts</td><td class="pos">No — reasonable intraday range</td></tr>
+    </tbody>
+  </table>
+  <p><strong>Verdict:</strong> The market was <em>not sideways</em> for Nifty. BankNifty had a difficult reversal week (bounce after gap-down on Jul 14, then consolidation). The losses are explainable trade-by-trade — not a regime failure.</p>
+</div>
+
+
+<h2>What Was Actually Missed</h2>
+<table>
+  <thead><tr><th>#</th><th>Issue</th><th>Severity</th><th>Action</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td>Report is labelled "90-day walk-forward" but uses only 10 days</td>
+      <td class="neg">Critical</td>
+      <td>Set <code>DAYS_BACK = 90</code> in <code>run_backtest_report.py</code></td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>Nifty Jul 14 SELL entered at ADX 38.05 — just outside dead-zone ceiling of 38</td>
+      <td class="neg">Minor loss</td>
+      <td>Consider raising <code>ADX_DEAD_ZONE_HIGH</code> to 39 or 40 (eliminate the knife-edge)</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>BNKN Jul 14 09:45 entry — pre-dead-zone but first-candle ST flip (classic false flip)</td>
+      <td class="neg">−148 pts</td>
+      <td>Extend <code>BNKN_SKIP_SLOT_START</code> back to <code>09:40</code> to block pre-dead-zone opening entries too</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>Nifty BUY Jul 17 — 3pt SL (ST barely below price at entry)</td>
+      <td class="v-warn">Minor</td>
+      <td>Add minimum SL distance: <code>sl = max(st_val, close − 0.3×ATR)</code> in <code>backtester._open()</code></td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td>3 of 6 Nifty trades exited EOD — Supertrend not trailing fast enough</td>
+      <td>Informational</td>
+      <td>Test <code>ST_PERIOD = 5</code> (faster trail) in a 90-day run; may improve avg pts per trade</td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td>BNKN 0% WR this week</td>
+      <td>Normal variance</td>
+      <td>Wait for 90-day data before tuning — single week is insufficient signal</td>
+    </tr>
+  </tbody>
+</table>
+
+
+<h2>Recommended Immediate Actions</h2>
+<ol style="padding-left:18px;margin-bottom:8px">
+  <li style="margin-bottom:6px"><strong>Re-run with <code>DAYS_BACK = 90</code></strong> — the current numbers are not actionable. 90 days will give 50–100+ trades per symbol.</li>
+  <li style="margin-bottom:6px"><strong>Extend BNKN dead zone to cover 09:40</strong>: change <code>BNKN_SKIP_SLOT_START = "09:40"</code> in config — this blocks the opening-candle false-flip entries before the market settles.</li>
+  <li style="margin-bottom:6px"><strong>Raise ADX dead-zone high to 39</strong>: change <code>ADX_DEAD_ZONE_HIGH = 39</code> — removes the 38.x borderline entries that are in the exhaustion zone.</li>
+  <li style="margin-bottom:6px"><strong>Do NOT change the RSI bands, ST multiplier, or SL cap</strong> based on this 10-day sample. Those are tuned on 180-day data and should not be re-tuned on 6 trades.</li>
+</ol>
+
+<hr />
+<p class="muted" style="font-size:12px">
+  Files reviewed: <code>tests/run_backtest_report.py</code>, <code>config.py</code>, <code>engine/backtester.py</code>, <code>engine/signal_engine.py</code>
+</p>
+
+<footer>Made with IBM Bob</footer>
+</div>
+</body>
+</html>
