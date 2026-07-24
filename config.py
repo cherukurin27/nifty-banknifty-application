@@ -38,6 +38,31 @@ STOCK_INSTRUMENTS = {
     "HCLTECH"  : {"symbol": "HCLTECH",   "token": "7229",  "exchange": "NSE"},
 }
 
+# ─── Stocks Dashboard instruments (Tab 4 — direct price BUY/SELL signals) ────
+# Four high-liquidity Nifty 50 stocks tracked on 5-min candles.
+# strategy: order of strategies evaluated per symbol.
+#
+# SBIN / AXISBANK — DISABLED: 90d backtest PF < 1.0, net negative.
+#   SBIN:     PF 0.82, MDD −91 pts — re-enable after running dead-zone tuning.
+#   AXISBANK: PF 0.76, MDD −126 pts — re-enable after per-stock ATR-SL tuning.
+#   To re-enable: uncomment the entry and run python tests/run_st_backtest_report.py
+STOCK_OPTIONS_INSTRUMENTS = {
+    "HDFCBANK"   : {"symbol": "HDFCBANK",    "token": "1333",  "exchange": "NSE",
+                    "strategy": ["vwap", "breakout", "ema"]},
+    "ICICIBANK"  : {"symbol": "ICICIBANK",   "token": "4963",  "exchange": "NSE",
+                    "strategy": ["breakout", "ema"]},   # vwap removed: VWAP combos = −30 pts / 180d
+    "RELIANCE"   : {"symbol": "RELIANCE",    "token": "2885",  "exchange": "NSE",
+                    "strategy": ["reversal", "breakout", "ema"],
+                    "sell_only": True},   # BUY: 37% WR / -25.79 pts (180d, 27t) — BUY disabled
+    "INFY"       : {"symbol": "INFY",        "token": "1594",  "exchange": "NSE",
+                    "strategy": ["reversal", "ema", "breakout"],
+                    "sell_only": True},   # BUY: EMA+Breakout = 11.1% WR / −34.5 pts (90d) — BUY disabled
+    "BHARTIARTL" : {"symbol": "BHARTIARTL",  "token": "10604", "exchange": "NSE",
+                    "strategy": ["breakout", "ema"]},        # vwap removed: BUY:VWAP+EMA=33%WR drain; MDD inflator (180d)
+    "BAJFINANCE" : {"symbol": "BAJFINANCE",  "token": "317",   "exchange": "NSE",
+                    "strategy": ["breakout", "vwap", "ema"]},
+}
+
 # ─── Strategy Parameters ─────────────────────────────────────────────────────
 TIMEFRAME_MINUTES = 5
 
@@ -288,12 +313,20 @@ ATR_SL_MULT_BANKNIFTY = 2.0   # BankNifty SL starts at entry ± ATR×this; cappe
 # Starting value 2.0 — run 90-day backtest per stock and tune if needed.
 # Stocks with higher beta (ICICIBANK, HCLTECH) may benefit from 2.5×.
 ATR_SL_MULT_STOCKS = {
-    "RELIANCE" : 2.0,
-    "HDFCBANK" : 2.0,
-    "ICICIBANK": 2.0,
-    "INFY"     : 2.0,
-    "TCS"      : 2.0,
-    "HCLTECH"  : 2.0,
+    "RELIANCE"   : 2.0,
+    "HDFCBANK"   : 2.0,   # 1.5× tested but WR fell 55%→42% — tight SL stops out winners; keep 2.0×
+    "ICICIBANK"  : 2.0,
+    "INFY"       : 2.0,
+    "TCS"        : 2.0,
+    "HCLTECH"    : 2.0,
+}
+
+# Hard SL cap in points for individual stocks (optional — only set where ATR overestimates risk)
+# BHARTIARTL: 2×ATR regularly reaches 9–13 pts on this ₹1800–2000 stock; the 4 losses >10 pts
+#             and 16 losses in 5–10 pts range are the sole MDD driver (180d analysis).
+#             Cap at 8 pts: covers the median ATR but clamps outlier drawdowns.
+ST_SL_CAP_PTS: dict[str, float] = {
+    "BHARTIARTL": 8.0,
 }
 
 # ─── Telegram Alerts (optional) ──────────────────────────────────────────────
